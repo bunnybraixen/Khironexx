@@ -1,0 +1,35 @@
+<IfModule mod_authz_core.c>
+  <FilesMatch "\.php$">
+    Require all denied
+  </FilesMatch>
+  <Files "index.php">
+    Require all granted
+  </Files>
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+  <FilesMatch "\.php$">
+    Deny from all
+  </FilesMatch>
+  <Files "index.php">
+    Allow from all
+  </Files>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Check if html cached version exists.
+  RewriteRule ^$ index.html [QSA]
+  RewriteRule ^([^.]+)$ $1.html [QSA]
+  RewriteCond %{REQUEST_FILENAME} !-f
+
+  # Fallback to installer front controller.
+  RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Security headers.
+  Header set X-Content-Type-Options nosniff
+  Header set X-XSS-Protection "1; mode=block"
+</IfModule>

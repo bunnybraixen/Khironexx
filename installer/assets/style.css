@@ -1,0 +1,408 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: dark;
+  --bg-0: #070b18;
+  --bg-1: #0b1226;
+  --bg-2: #101b33;
+  --card: #0f172a;
+  --card-2: #0b1222;
+  --stroke: #1f2a44;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #22d3ee;
+  --accent-2: #38bdf8;
+  --accent-3: #f59e0b;
+  --success: #10b981;
+  --danger: #f87171;
+}
+
+body {
+  font-family: "Manrope", "Segoe UI", Tahoma, Arial, sans-serif;
+  margin: 0;
+  color: var(--text);
+  background: radial-gradient(circle at top, #101c38 0%, #0b1226 45%, #070b18 100%);
+  background-size: 180% 180%;
+  animation: bgShift 18s ease infinite;
+  min-height: 100vh;
+}
+
+.page {
+  position: relative;
+  overflow: hidden;
+}
+
+.page::before,
+.page::after {
+  content: "";
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(30px);
+  opacity: 0.35;
+  animation: floatGlow 12s ease-in-out infinite;
+}
+
+.page::before {
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.45), transparent 70%);
+  top: -240px;
+  left: -160px;
+}
+
+.page::after {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.35), transparent 70%);
+  bottom: -260px;
+  right: -160px;
+  animation-delay: -4s;
+}
+
+.glow {
+  position: absolute;
+  inset: -30% 8% auto auto;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.25), transparent 70%);
+  filter: blur(30px);
+  animation: pulseGlow 8s ease-in-out infinite;
+}
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 22px;
+  align-items: center;
+  margin-bottom: 20px;
+  animation: fadeUp 0.9s ease both;
+}
+
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.hero-brand img {
+  height: 104px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 22px rgba(34, 211, 238, 0.45));
+  animation: floatLogo 6s ease-in-out infinite;
+}
+
+.hero-brand-title {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.hero-title {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.hero-subtitle {
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 520px;
+}
+
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(140deg, #0b1226, #1e293b 60%, #0f172a);
+  color: #ffffff;
+  border-radius: 18px;
+  padding: 20px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 18px 40px rgba(7, 11, 24, 0.6);
+  animation: floatCard 7s ease-in-out infinite;
+}
+
+.hero-card-glow {
+  position: absolute;
+  inset: auto -40px -40px auto;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.45), transparent 70%);
+  filter: blur(10px);
+  opacity: 0.7;
+}
+
+.hero-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+.hero-card p {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.card {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  padding: 26px;
+  box-shadow: 0 16px 34px rgba(7, 11, 24, 0.6);
+  backdrop-filter: blur(6px);
+  animation: fadeUp 0.6s ease both;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.step {
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--stroke);
+  color: var(--muted);
+  text-align: center;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+}
+
+.step.active {
+  background: linear-gradient(120deg, #0ea5e9, #22d3ee);
+  color: #04142b;
+  border-color: transparent;
+  box-shadow: 0 10px 20px rgba(14, 165, 233, 0.35);
+}
+
+.step.active::after {
+  content: "";
+  position: absolute;
+  inset: -40% -20%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.45), transparent 55%);
+  animation: stepPulse 2.8s ease-in-out infinite;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid.two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--card-2);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.4);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid rgba(34, 211, 238, 0.6);
+  border-color: rgba(34, 211, 238, 0.8);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn {
+  border: 0;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  background-size: 200% 200%;
+  color: #04263a;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  box-shadow: 0 12px 24px rgba(34, 211, 238, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  animation: btnGlow 4s ease infinite;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(34, 211, 238, 0.45);
+  filter: saturate(1.1);
+}
+
+.btn.secondary {
+  background: rgba(148, 163, 184, 0.18);
+  color: var(--text);
+  box-shadow: none;
+  border: 1px solid var(--stroke);
+}
+
+.notice {
+  padding: 12px 14px;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  border-radius: 12px;
+  color: #bfdbfe;
+  font-size: 13px;
+}
+
+.success {
+  padding: 12px 14px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.6);
+  border-radius: 12px;
+  color: #a7f3d0;
+  font-size: 13px;
+}
+
+.error {
+  padding: 12px 14px;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.6);
+  border-radius: 12px;
+  color: #fecaca;
+  font-size: 13px;
+}
+
+.list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--stroke);
+  margin: 16px 0;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.14);
+  font-size: 11px;
+  font-weight: 700;
+  color: #a5f3fc;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+}
+
+@keyframes floatGlow {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(20px) translateX(12px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+@keyframes bgShift {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+}
+
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes floatLogo {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes stepPulse {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.15); }
+}
+
+@keyframes btnGlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page::before,
+  .page::after,
+  .glow,
+  .hero,
+  .card,
+  .hero-card,
+  .hero-brand img,
+  .btn,
+  body {
+    animation: none;
+  }
+  .btn {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid.two {
+    grid-template-columns: 1fr;
+  }
+}
