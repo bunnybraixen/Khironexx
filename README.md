@@ -35,3 +35,4 @@ Khironex es una aplicacion web de RRHH y capacitaciones con instalador propio y 
 1. Mantener rutas en español (`practicantes`, `relatores`, `capacitaciones`, `informes`, `usuarios`).
 2. Cada modulo debe tener su tabla y CRUD basico.
 3. Cambios de estructura se documentan aqui.
+# Khironexx
