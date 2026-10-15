@@ -1,0 +1,2 @@
+[2026-10-15 17:19:08] Unhandled exception {"incident":"inc_6ad0eeec6134b7.30656651","type":"Error","message":"Call to a member function execute() on bool","file":"C:\\xampp\\htdocs\\khironexx\\web\\index.php","line":2918,"route":"historial","uri":"/khironexx/dashboard/?route=historial"}
+[2026-10-15 17:19:11] Unhandled exception {"incident":"inc_6ad0eeefa55342.98840992","type":"Error","message":"Call to a member function execute() on bool","file":"C:\\xampp\\htdocs\\khironexx\\web\\index.php","line":2918,"route":"historial","uri":"/khironexx/dashboard/?route=historial"}

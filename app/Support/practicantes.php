@@ -249,7 +249,6 @@ if (!function_exists('practicantes_build_data')) {
         $registerDraft = [];
         $editDraft = [];
         $formType = $_POST['form_type'] ?? '';
-        $catalogEditReset = false;
         $viewId = (int)($_GET['view'] ?? 0);
         $editId = (int)($_GET['edit'] ?? 0);
         $canAdd = $permissions['canAdd'] ?? false;
@@ -292,8 +291,6 @@ if (!function_exists('practicantes_build_data')) {
                 'editDraft' => $editDraft,
                 'activeModule' => 'registrar',
                 'horasPorDia' => $horasPorDia,
-                'catalogEdit' => null,
-                'catalogEditType' => '',
             ];
         }
 
@@ -978,119 +975,23 @@ if (!function_exists('practicantes_build_data')) {
                 }
             }
 
-            if (in_array($formType, ['department', 'position', 'department_update', 'position_update', 'department_delete', 'position_delete'], true)) {
-                $isDepartmentCatalog = strpos($formType, 'department') === 0;
-                $catalogType = $isDepartmentCatalog ? 'department' : 'position';
-                $catalogTable = $isDepartmentCatalog ? 'departamentos' : 'cargos';
-                $catalogLabel = $isDepartmentCatalog ? 'Departamento' : 'Cargo';
-                $catalogId = (int)($_POST['catalog_id'] ?? 0);
+            if (in_array($formType, ['department', 'position'], true)) {
                 $name = trim((string)($_POST['name'] ?? ''));
-                $isCatalogUpdate = substr($formType, -7) === '_update';
-                $isCatalogDelete = substr($formType, -7) === '_delete';
-
                 if (!$canAdmin) {
-                    $catalogAction = $isCatalogDelete ? 'eliminar' : ($isCatalogUpdate ? 'actualizar' : 'crear');
-                    $detail = "Solicitud de actualizacion catalogo " . $catalogType . ": " . $catalogAction . " " . ($name !== '' ? $name : ('ID ' . $catalogId));
+                    $detail = "Solicitud de actualizacion catalogo " . $formType . ": " . $name;
                     if (function_exists('create_change_request')) {
-                        create_change_request($db, $userId, 'catalogos', $catalogAction, $detail);
+                        create_change_request($db, $userId, 'catalogos', 'crear', $detail);
                         $messages[] = "Solicitud enviada al Encargado de RRHH.";
                     } else {
                         $errors[] = "No tienes permisos para actualizar catalogos.";
                     }
-                } elseif ($isCatalogDelete) {
-                    if ($catalogId <= 0) {
-                        $errors[] = "No se pudo identificar el " . $catalogLabel . " a eliminar.";
-                    } else {
-                        $deleteCatalog = $db->prepare("DELETE FROM " . $catalogTable . " WHERE id = ?");
-                        if ($deleteCatalog) {
-                            $deleteCatalog->bind_param('i', $catalogId);
-                            try {
-                                if ($deleteCatalog->execute() && $deleteCatalog->affected_rows > 0) {
-                                    $messages[] = $catalogLabel . " eliminado correctamente.";
-                                    $catalogEditReset = true;
-                                } else {
-                                    $errors[] = "El " . $catalogLabel . " ya no existe.";
-                                }
-                            } catch (Throwable $e) {
-                                $errors[] = "No se pudo eliminar el " . $catalogLabel . ".";
-                            }
-                            $deleteCatalog->close();
-                        } else {
-                            $errors[] = "No se pudo preparar la eliminacion del " . $catalogLabel . ".";
-                        }
-                    }
-                } elseif ($name === '') {
-                    $errors[] = "El nombre del " . $catalogLabel . " no puede estar vacio.";
-                } elseif ($isCatalogUpdate) {
-                    if ($catalogId <= 0) {
-                        $errors[] = "No se pudo identificar el " . $catalogLabel . " a editar.";
-                    } else {
-                        $updateCatalog = $db->prepare("UPDATE " . $catalogTable . " SET name = ? WHERE id = ?");
-                        if ($updateCatalog) {
-                            $updateCatalog->bind_param('si', $name, $catalogId);
-                            try {
-                                if ($updateCatalog->execute()) {
-                                    $messages[] = $catalogLabel . " actualizado correctamente.";
-                                    $catalogEditReset = true;
-                                } else {
-                                    $errors[] = "No se pudo actualizar el " . $catalogLabel . ".";
-                                }
-                            } catch (Throwable $e) {
-                                $errors[] = "No se pudo actualizar el " . $catalogLabel . " (verifica que el nombre no este repetido).";
-                            }
-                            $updateCatalog->close();
-                        } else {
-                            $errors[] = "No se pudo preparar la actualizacion del " . $catalogLabel . ".";
-                        }
-                    }
-                } else {
-                    $insertCatalog = $db->prepare("INSERT INTO " . $catalogTable . " (name) VALUES (?)");
-                    if ($insertCatalog) {
-                        $insertCatalog->bind_param('s', $name);
-                        try {
-                            $insertCatalog->execute();
-                            $messages[] = "Catalogo actualizado.";
-                        } catch (Throwable $e) {
-                            $errors[] = "No se pudo agregar el " . $catalogLabel . " (verifica que el nombre no este repetido).";
-                        }
-                        $insertCatalog->close();
-                    } else {
-                        $errors[] = "No se pudo preparar el registro del " . $catalogLabel . ".";
-                    }
+                } elseif ($name !== '') {
+                    $table = $formType === 'department' ? 'departamentos' : 'cargos';
+                    $stmt = $db->prepare("INSERT INTO " . $table . " (name) VALUES (?)");
+                    $stmt->bind_param('s', $name);
+                    $stmt->execute();
+                    $messages[] = "Catalogo actualizado.";
                 }
-            }
-        }
-
-        // Modo edicion de catalogos: ?catalog_type=department|position&catalog_edit=ID
-        $catalogEditType = trim((string)($_GET['catalog_type'] ?? ''));
-        $catalogEditId = (int)($_GET['catalog_edit'] ?? 0);
-        if ($catalogEditReset || !in_array($catalogEditType, ['department', 'position'], true)) {
-            $catalogEditType = '';
-            $catalogEditId = 0;
-        }
-        $catalogEdit = null;
-        if ($catalogEditId > 0) {
-            $catalogEditTable = $catalogEditType === 'department' ? 'departamentos' : 'cargos';
-            try {
-                $catalogEditStmt = $db->prepare("SELECT id, name FROM " . $catalogEditTable . " WHERE id = ? LIMIT 1");
-                if ($catalogEditStmt) {
-                    $catalogEditStmt->bind_param('i', $catalogEditId);
-                    $catalogEditStmt->execute();
-                    $catalogEditRow = $catalogEditStmt->get_result()->fetch_assoc();
-                    if ($catalogEditRow) {
-                        $catalogEdit = [
-                            'id' => (int)$catalogEditRow['id'],
-                            'name' => (string)$catalogEditRow['name'],
-                            'type' => $catalogEditType,
-                        ];
-                    } else {
-                        $catalogEditType = '';
-                    }
-                    $catalogEditStmt->close();
-                }
-            } catch (Throwable $e) {
-                $catalogEdit = null;
-                $catalogEditType = '';
             }
         }
 
@@ -1162,19 +1063,8 @@ if (!function_exists('practicantes_build_data')) {
         $stmt->execute();
         $rows = $stmt->get_result();
 
-        $departmentsSql = "SELECT id, name FROM departamentos ORDER BY name ASC";
-        if (in_array('department_id', $practicantesColumns, true)) {
-            $departmentsSql = "SELECT d.id, d.name, (SELECT COUNT(*) FROM practicantes p WHERE p.department_id = d.id) AS usage_count
-                FROM departamentos d ORDER BY d.name ASC";
-        }
-        $departmentsList = $db->query($departmentsSql);
-
-        $positionsSql = "SELECT id, name FROM cargos ORDER BY name ASC";
-        if (in_array('position_id', $practicantesColumns, true)) {
-            $positionsSql = "SELECT c.id, c.name, (SELECT COUNT(*) FROM practicantes p WHERE p.position_id = c.id) AS usage_count
-                FROM cargos c ORDER BY c.name ASC";
-        }
-        $positionsList = $db->query($positionsSql);
+        $departmentsList = $db->query("SELECT id, name FROM departamentos ORDER BY name ASC");
+        $positionsList = $db->query("SELECT id, name FROM cargos ORDER BY name ASC");
 
         $viewPract = null;
         $horasList = [];
@@ -1251,8 +1141,6 @@ if (!function_exists('practicantes_build_data')) {
             'editDraft' => $editDraft,
             'activeModule' => $activeModule,
             'horasPorDia' => $horasPorDia,
-            'catalogEdit' => $catalogEdit,
-            'catalogEditType' => $catalogEditType,
         ];
     }
 }

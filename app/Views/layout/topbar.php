@@ -26,24 +26,6 @@
         <a class="user-menu-item" href="<?php echo htmlspecialchars(url_path('documentos/PlantillaInforme.docx')); ?>">
           <i class="fas fa-file-word" aria-hidden="true"></i> Plantilla Informe
         </a>
-        <a class="user-menu-item" href="https://khironex.consultcyc.cl/plantillas/PlantillaSeguimiento.docx" download>
-          <i class="fas fa-file-word" aria-hidden="true"></i> Plantilla Avance
-        </a>
-      </div>
-    </div>
-    <div class="user-dropdown" data-user-dropdown>
-      <button class="user-trigger" type="button" data-user-trigger aria-label="Sitios" aria-haspopup="true" aria-expanded="false">
-        <i class="fas fa-globe" aria-hidden="true"></i>
-        <span class="user-name">Sitios</span>
-        <i class="fas fa-chevron-down user-trigger-chevron" aria-hidden="true"></i>
-      </button>
-      <div class="user-menu" data-user-menu>
-        <a class="user-menu-item" href="https://helpdesk.consultorescyc.cl/" target="_blank" rel="noopener">
-          <i class="fas fa-headset" aria-hidden="true"></i> Helpdesk
-        </a>
-        <a class="user-menu-item" href="https://appbitacoras.consultorescyc.cl/asistencia" target="_blank" rel="noopener">
-          <i class="fas fa-clipboard-list" aria-hidden="true"></i> Bitacora
-        </a>
       </div>
     </div>
     <div class="user-dropdown" data-user-dropdown>

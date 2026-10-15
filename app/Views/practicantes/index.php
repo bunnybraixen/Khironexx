@@ -31,11 +31,6 @@ $horasPorDia = (int)($practicantesData['horasPorDia'] ?? 8);
 if (!in_array($activeModule, ['registrar', 'buscar', 'editar'], true)) {
   $activeModule = 'registrar';
 }
-$catalogEdit = $practicantesData['catalogEdit'] ?? null;
-$catalogEditType = (string)($practicantesData['catalogEditType'] ?? '');
-$isEditingDepartment = is_array($catalogEdit) && $catalogEditType === 'department';
-$isEditingPosition = is_array($catalogEdit) && $catalogEditType === 'position';
-$catalogFormUrl = route_url('practicantes') . '&ui_module=' . urlencode($activeModule);
 
 $draftValue = function ($key, $default = '') use ($registerDraft) {
   if (!array_key_exists($key, $registerDraft)) {
@@ -813,25 +808,13 @@ if ($rawEditCumple !== '') {
       <p class="subtle">Edita los catalogos base usados en Practicantes.</p>
       <?php if ($canAdmin): ?>
         <form method="post" class="stack compact">
-          <input type="hidden" name="form_type" value="<?php echo $isEditingDepartment ? 'department_update' : 'department'; ?>">
-          <input type="hidden" name="ui_module" value="<?php echo htmlspecialchars($activeModule); ?>">
-          <?php if ($isEditingDepartment): ?>
-            <input type="hidden" name="catalog_id" value="<?php echo (int)$catalogEdit['id']; ?>">
-          <?php endif; ?>
+          <input type="hidden" name="form_type" value="department">
           <div class="field">
             <label>Nombre</label>
-            <input name="name" required value="<?php echo $isEditingDepartment ? htmlspecialchars((string)$catalogEdit['name']) : ''; ?>">
+            <input name="name" required>
           </div>
-          <div class="section-actions">
-            <button class="btn" type="submit"><?php echo $isEditingDepartment ? 'Guardar cambios' : 'Agregar'; ?></button>
-            <?php if ($isEditingDepartment): ?>
-              <a class="btn secondary" href="<?php echo htmlspecialchars($catalogFormUrl); ?>">Cancelar</a>
-            <?php endif; ?>
-          </div>
+          <button class="btn" type="submit">Agregar</button>
         </form>
-        <?php if ($isEditingDepartment): ?>
-          <div class="notice">Editando departamento: <?php echo htmlspecialchars((string)$catalogEdit['name']); ?></div>
-        <?php endif; ?>
         <hr>
       <?php else: ?>
         <div class="notice">Solo lectura: no tienes permisos para editar catalogos.</div>
@@ -841,8 +824,6 @@ if ($rawEditCumple !== '') {
           <tr>
             <th>ID</th>
             <th>Nombre</th>
-            <th>Practicantes</th>
-            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -850,22 +831,6 @@ if ($rawEditCumple !== '') {
               <tr>
                 <td><?php echo (int)$row['id']; ?></td>
                 <td><?php echo htmlspecialchars($row['name']); ?></td>
-                <td><?php echo (int)($row['usage_count'] ?? 0); ?></td>
-                <td>
-                  <?php if ($canAdmin): ?>
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                      <a class="btn warning" style="margin-top:0;" href="<?php echo htmlspecialchars($catalogFormUrl . '&catalog_type=department&catalog_edit=' . (int)$row['id']); ?>">Editar</a>
-                      <form method="post" style="display:inline-block;margin:0;" onsubmit="return confirm('Eliminar el departamento <?php echo htmlspecialchars($row['name']); ?>? Los practicantes asignados quedaran sin departamento.');">
-                        <input type="hidden" name="form_type" value="department_delete">
-                        <input type="hidden" name="catalog_id" value="<?php echo (int)$row['id']; ?>">
-                        <input type="hidden" name="ui_module" value="<?php echo htmlspecialchars($activeModule); ?>">
-                        <button class="btn danger" type="submit" style="margin-top:0;">Eliminar</button>
-                      </form>
-                    </div>
-                  <?php else: ?>
-                    <span class="subtle">Solo lectura</span>
-                  <?php endif; ?>
-                </td>
               </tr>
           <?php endwhile;
           endif; ?>
@@ -875,28 +840,15 @@ if ($rawEditCumple !== '') {
 
     <div class="card">
       <h4 class="section-title">Cargos</h4>
-      <p class="subtle">Edita los catalogos base usados en Practicantes.</p>
       <?php if ($canAdmin): ?>
         <form method="post" class="stack compact">
-          <input type="hidden" name="form_type" value="<?php echo $isEditingPosition ? 'position_update' : 'position'; ?>">
-          <input type="hidden" name="ui_module" value="<?php echo htmlspecialchars($activeModule); ?>">
-          <?php if ($isEditingPosition): ?>
-            <input type="hidden" name="catalog_id" value="<?php echo (int)$catalogEdit['id']; ?>">
-          <?php endif; ?>
+          <input type="hidden" name="form_type" value="position">
           <div class="field">
             <label>Nombre</label>
-            <input name="name" required value="<?php echo $isEditingPosition ? htmlspecialchars((string)$catalogEdit['name']) : ''; ?>">
+            <input name="name" required>
           </div>
-          <div class="section-actions">
-            <button class="btn" type="submit"><?php echo $isEditingPosition ? 'Guardar cambios' : 'Agregar'; ?></button>
-            <?php if ($isEditingPosition): ?>
-              <a class="btn secondary" href="<?php echo htmlspecialchars($catalogFormUrl); ?>">Cancelar</a>
-            <?php endif; ?>
-          </div>
+          <button class="btn" type="submit">Agregar</button>
         </form>
-        <?php if ($isEditingPosition): ?>
-          <div class="notice">Editando cargo: <?php echo htmlspecialchars((string)$catalogEdit['name']); ?></div>
-        <?php endif; ?>
         <hr>
       <?php else: ?>
         <div class="notice">Solo lectura: no tienes permisos para editar catalogos.</div>
@@ -906,8 +858,6 @@ if ($rawEditCumple !== '') {
           <tr>
             <th>ID</th>
             <th>Nombre</th>
-            <th>Practicantes</th>
-            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -915,22 +865,6 @@ if ($rawEditCumple !== '') {
               <tr>
                 <td><?php echo (int)$row['id']; ?></td>
                 <td><?php echo htmlspecialchars($row['name']); ?></td>
-                <td><?php echo (int)($row['usage_count'] ?? 0); ?></td>
-                <td>
-                  <?php if ($canAdmin): ?>
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                      <a class="btn warning" style="margin-top:0;" href="<?php echo htmlspecialchars($catalogFormUrl . '&catalog_type=position&catalog_edit=' . (int)$row['id']); ?>">Editar</a>
-                      <form method="post" style="display:inline-block;margin:0;" onsubmit="return confirm('Eliminar el cargo <?php echo htmlspecialchars($row['name']); ?>? Los practicantes asignados quedaran sin cargo.');">
-                        <input type="hidden" name="form_type" value="position_delete">
-                        <input type="hidden" name="catalog_id" value="<?php echo (int)$row['id']; ?>">
-                        <input type="hidden" name="ui_module" value="<?php echo htmlspecialchars($activeModule); ?>">
-                        <button class="btn danger" type="submit" style="margin-top:0;">Eliminar</button>
-                      </form>
-                    </div>
-                  <?php else: ?>
-                    <span class="subtle">Solo lectura</span>
-                  <?php endif; ?>
-                </td>
               </tr>
           <?php endwhile;
           endif; ?>

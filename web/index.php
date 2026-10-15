@@ -277,6 +277,44 @@ export_herramientas_templates_if_requested($route, ($canAccessRrhh || $canAccess
 
 export_informes_if_requested($route, $user, $db);
 
+$ticketsAvailable = false;
+$ticketMessagesAvailable = false;
+$ticketRows = [];
+$ticketMessagesByTicket = [];
+$ticketFilters = [
+  'q' => trim((string)($_GET['q'] ?? '')),
+  'status' => trim((string)($_GET['status'] ?? '')),
+  'prioridad' => trim((string)($_GET['prioridad'] ?? '')),
+  'modulo' => trim((string)($_GET['modulo'] ?? '')),
+];
+$ticketFilters['q'] = function_exists('mb_substr') ? mb_substr($ticketFilters['q'], 0, 100) : substr($ticketFilters['q'], 0, 100);
+$ticketMessages = $_SESSION['tickets_flash'] ?? [];
+$ticketErrors = [];
+unset($_SESSION['tickets_flash']);
+if ($route === 'tickets' && $user) {
+  $ticketsAvailable = db_table_exists($db, 'tickets_soporte');
+  $ticketMessagesAvailable = db_table_exists($db, 'tickets_mensajes');
+  if ($ticketsAvailable && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $ticketAction = (string)($_POST['ticket_action'] ?? '');
+    $ticketResult = ($ticketAction === 'comment' && !$ticketMessagesAvailable)
+      ? ['error' => 'Falta habilitar el historial de mensajes con la migración tickets_mensajes_migration.sql.']
+      : tickets_handle_post($db, $user, $isAdmin);
+    if (!empty($ticketResult['success'])) {
+      $_SESSION['tickets_flash'] = [$ticketResult['success']];
+      redirect(route_url('tickets'));
+    }
+    if (!empty($ticketResult['error'])) {
+      $ticketErrors[] = $ticketResult['error'];
+    }
+  }
+  if ($ticketsAvailable) {
+    $ticketRows = tickets_fetch_for_user($db, $user['id'] ?? 0, $isAdmin, $ticketFilters);
+    if ($ticketMessagesAvailable) {
+      $ticketMessagesByTicket = tickets_fetch_messages($db, $ticketRows);
+    }
+  }
+}
+
 $frameworkAssets = bootstrap_assets();
 $appCssUrl = asset('assets/app.css');
 $appJsUrl = asset('assets/app.js');
@@ -2361,6 +2399,11 @@ if (is_file($appJsVersionPath)) {
                   </div>
                 </div>
               <?php endif; ?>
+            <?php elseif ($route === 'tickets'): ?>
+              <?php
+              $ticketIsAdmin = (bool)$isAdmin;
+              require __DIR__ . '/../app/Views/tickets/index.php';
+              ?>
             <?php elseif ($route === 'solicitudes'): ?>
               <?php if (!$canAdmin): ?>
                 <div class="notice">No tienes permisos para acceder a solicitudes.</div>

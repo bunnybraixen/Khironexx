@@ -58,6 +58,7 @@ return [
         ['label' => 'Sedes de capacitaciones', 'route' => 'sedes'],
         ['label' => 'Informes', 'route' => 'informes'],
         ['label' => 'Solicitudes', 'route' => 'solicitudes'],
+        ['label' => 'Tickets de soporte', 'route' => 'tickets'],
         ['label' => 'Herramientas', 'route' => 'herramientas'],
         ['label' => 'Archivos compartidos', 'route' => 'archivos'],
         ['label' => 'Historial', 'route' => 'historial'],
