@@ -199,10 +199,10 @@ $canAdminArea = $isAdmin || $isAdministracion;
 $canAccessRrhh = $canRrhhAdd || $canRead;
 $canAccessAdminArea = $canAdminArea || $canRead;
 $canAdmin = $isAdmin;
-// Tareas: administradores (admin / administracion operativa) asignan;
-// administradores y RRHH ven sus tareas y las marcan como listas.
+// Tareas: todos los usuarios ven la pagina y sus tareas pendientes;
+// solo administradores (admin / administracion operativa) pueden asignar.
 $canAssignTareas = $isAdmin || $isAdministracion;
-$canViewTareas = $isAdmin || $isAdministracion || $isRrhh;
+$canViewTareas = (bool)$user;
 
 if ($route === 'logout') {
   $_SESSION = [];
@@ -398,7 +398,7 @@ if (is_file($appJsVersionPath)) {
     $dashboardConfig = load_dashboard_config($dashboardConfigPath);
 
     $dashboardMenu = dashboard_menu($dashboardConfig);
-    $dashboardMenu = array_values(array_filter($dashboardMenu, function ($item) use ($canAdmin, $canAccessRrhh, $canAccessAdminArea) {
+    $dashboardMenu = array_values(array_filter($dashboardMenu, function ($item) use ($canAdmin, $canAccessRrhh, $canAccessAdminArea, $canViewTareas) {
       $routeKey = $item['route'] ?? '';
       if ($routeKey === 'usuarios' || $routeKey === 'solicitudes' || $routeKey === 'historial' || $routeKey === 'contactos' || $routeKey === 'database') {
         return $canAdmin;
@@ -407,7 +407,7 @@ if (is_file($appJsVersionPath)) {
         return $canAccessRrhh || $canAccessAdminArea;
       }
       if ($routeKey === 'tareas') {
-        return $canViewTareas;
+        return true;
       }
       if ($routeKey === 'archivos') {
         return $canAccessRrhh || $canAccessAdminArea;
@@ -2462,11 +2462,7 @@ if (is_file($appJsVersionPath)) {
               require __DIR__ . '/../app/Views/tickets/index.php';
               ?>
             <?php elseif ($route === 'tareas'): ?>
-              <?php if (!$canViewTareas): ?>
-                <div class="notice">No tienes permisos para acceder a Tareas.</div>
-              <?php else: ?>
-                <?php require __DIR__ . '/../app/Views/tareas/index.php'; ?>
-              <?php endif; ?>
+              <?php require __DIR__ . '/../app/Views/tareas/index.php'; ?>
             <?php elseif ($route === 'solicitudes'): ?>
               <?php if (!$canAdmin): ?>
                 <div class="notice">No tienes permisos para acceder a solicitudes.</div>

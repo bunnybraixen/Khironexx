@@ -76,11 +76,11 @@ $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
       }
 
       .widget-contact {
-        grid-column: span 7 !important;
+        grid-column: span 6 !important;
       }
 
       .widget-birthdays {
-        grid-column: span 5 !important;
+        grid-column: span 6 !important;
       }
 
       .widget-alert {
@@ -91,6 +91,12 @@ $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
       .widget-requests,
       .widget-tasks {
         grid-column: span 6 !important;
+      }
+
+      /* Cuando no hay bloque de alertas, tareas ocupa la fila completa
+         para que contactos y cumpleaños no dejen huecos. */
+      .widget-tasks.widget-tasks-wide {
+        grid-column: span 12 !important;
       }
 
       .widget-history {
@@ -175,7 +181,8 @@ $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
         <p class="subtle" style="margin: 8px 0 0 0;">Resumen rapido de la base central.</p>
       </div>
 
-      <?php if ($canAdmin && $dashboardAlerts): ?>
+      <?php $dashboardShowAlerts = ($canAdmin && $dashboardAlerts); ?>
+      <?php if ($dashboardShowAlerts): ?>
         <div class="widget-card widget-alert">
           <h3>Alertas de solicitudes</h3>
           <p class="subtle">Usuarios RRHH con mas de 3 solicitudes pendientes.</p>
@@ -290,7 +297,7 @@ $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
       $dashboardTasksVisible = !empty($dashboardData['tasksVisible']);
       ?>
       <?php if ($dashboardTasksVisible): ?>
-        <div class="widget-card widget-tasks">
+        <div class="widget-card widget-tasks<?php echo $dashboardShowAlerts ? '' : ' widget-tasks-wide'; ?>">
           <div class="widget-head">
             <h3>Tareas pendientes</h3>
             <span class="chip"><?php echo $dashboardTasksTotal; ?> pendientes</span>
