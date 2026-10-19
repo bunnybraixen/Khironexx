@@ -193,7 +193,7 @@ if (!function_exists('route_url')) {
     }
 }
 
-foreach ([__DIR__ . '/Support/web_helpers.php', __DIR__ . '/Support/exports.php', __DIR__ . '/Support/imports.php', __DIR__ . '/Support/dashboard.php', __DIR__ . '/Support/contactos.php', __DIR__ . '/Support/database_manager.php', __DIR__ . '/Support/postulantes.php', __DIR__ . '/Support/practicantes.php', __DIR__ . '/Support/sedes.php', __DIR__ . '/Support/requests.php', __DIR__ . '/Support/tickets.php'] as $supportFile) {
+foreach ([__DIR__ . '/Support/web_helpers.php', __DIR__ . '/Support/exports.php', __DIR__ . '/Support/imports.php', __DIR__ . '/Support/dashboard.php', __DIR__ . '/Support/contactos.php', __DIR__ . '/Support/database_manager.php', __DIR__ . '/Support/postulantes.php', __DIR__ . '/Support/practicantes.php', __DIR__ . '/Support/sedes.php', __DIR__ . '/Support/requests.php', __DIR__ . '/Support/tickets.php', __DIR__ . '/Support/tareas.php'] as $supportFile) {
     if (is_file($supportFile)) {
         require_once $supportFile;
     }

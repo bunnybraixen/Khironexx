@@ -88,7 +88,8 @@ $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
       }
 
       .widget-expiring,
-      .widget-requests {
+      .widget-requests,
+      .widget-tasks {
         grid-column: span 6 !important;
       }
 
@@ -104,7 +105,8 @@ $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
         .widget-contact,
         .widget-birthdays,
         .widget-alert,
-        .widget-expiring {
+        .widget-expiring,
+        .widget-tasks {
           grid-column: span 12 !important;
         }
       }
@@ -280,6 +282,48 @@ $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
         <?php endif; ?>
         <a class="link widget-link" href="<?php echo htmlspecialchars(route_url('solicitudes')); ?>">Ver todas las solicitudes <i class="fas fa-arrow-right"></i></a>
       </div>
+
+      <?php
+      $dashboardTasksData = is_array($dashboardData['tasks'] ?? null) ? $dashboardData['tasks'] : ['rows' => [], 'total' => 0];
+      $dashboardTaskRows = is_array($dashboardTasksData['rows'] ?? null) ? $dashboardTasksData['rows'] : [];
+      $dashboardTasksTotal = (int)($dashboardTasksData['total'] ?? 0);
+      $dashboardTasksVisible = !empty($dashboardData['tasksVisible']);
+      ?>
+      <?php if ($dashboardTasksVisible): ?>
+        <div class="widget-card widget-tasks">
+          <div class="widget-head">
+            <h3>Tareas pendientes</h3>
+            <span class="chip"><?php echo $dashboardTasksTotal; ?> pendientes</span>
+          </div>
+          <?php if ($dashboardTaskRows): ?>
+            <div style="display: block; width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; clear: both;">
+              <table class="table-compact" style="width: 100%; min-width: 450px; border-collapse: collapse;">
+                <thead>
+                  <tr>
+                    <th>Tarea</th>
+                    <th>Responsable</th>
+                    <th>Prioridad</th>
+                    <th>Fecha limite</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($dashboardTaskRows as $taskRow): ?>
+                    <tr>
+                      <td><a class="link" href="<?php echo htmlspecialchars(route_url('tareas')); ?>"><?php echo htmlspecialchars((string)($taskRow['titulo'] ?? '')); ?></a></td>
+                      <td><?php echo htmlspecialchars((string)($taskRow['asignado_a_nombre'] ?? '')); ?></td>
+                      <td><span class="metric-badge"><?php echo htmlspecialchars((string)($taskRow['prioridad'] ?? '')); ?></span></td>
+                      <td><?php echo !empty($taskRow['fecha_limite']) ? htmlspecialchars((string)$taskRow['fecha_limite']) : '<span class="subtle">Sin fecha</span>'; ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          <?php else: ?>
+            <p class="subtle">No hay tareas pendientes.</p>
+          <?php endif; ?>
+          <a class="link widget-link" href="<?php echo htmlspecialchars(route_url('tareas')); ?>">Ir a la pagina de tareas <i class="fas fa-arrow-right"></i></a>
+        </div>
+      <?php endif; ?>
 
       <div class="widget-card widget-contact">
         <h3>Contactos</h3>
