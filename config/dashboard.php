@@ -59,6 +59,7 @@ return [
         ['label' => 'Informes', 'route' => 'informes'],
         ['label' => 'Solicitudes', 'route' => 'solicitudes'],
         ['label' => 'Tickets de soporte', 'route' => 'tickets'],
+        ['label' => 'Tareas', 'route' => 'tareas'],
         ['label' => 'Herramientas', 'route' => 'herramientas'],
         ['label' => 'Archivos compartidos', 'route' => 'archivos'],
         ['label' => 'Historial', 'route' => 'historial'],

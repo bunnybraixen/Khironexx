@@ -24,6 +24,7 @@
     'informes' => 'fa-solid fa-file-lines',
     'solicitudes' => 'fa-solid fa-inbox',
     'tickets' => 'fa-solid fa-headset',
+    'tareas' => 'fa-solid fa-list-check',
     'herramientas' => 'fa-solid fa-screwdriver-wrench',
     'archivos' => 'fa-solid fa-folder-open',
     'historial' => 'fa-solid fa-clock-rotate-left',

@@ -199,6 +199,10 @@ $canAdminArea = $isAdmin || $isAdministracion;
 $canAccessRrhh = $canRrhhAdd || $canRead;
 $canAccessAdminArea = $canAdminArea || $canRead;
 $canAdmin = $isAdmin;
+// Tareas: todos los usuarios ven la pagina y sus tareas pendientes;
+// solo administradores (admin / administracion operativa) pueden asignar.
+$canAssignTareas = $isAdmin || $isAdministracion;
+$canViewTareas = (bool)$user;
 
 if ($route === 'logout') {
   $_SESSION = [];
@@ -315,6 +319,46 @@ if ($route === 'tickets' && $user) {
   }
 }
 
+$tareasAvailable = false;
+$tareaMessages = [];
+$tareaErrors = [];
+$tareaRows = [];
+$tareaUsers = [];
+$tareaCanAssign = (bool)$canAssignTareas;
+$tareaView = 'pendientes';
+$tareaFilters = [
+  'q' => trim((string)($_GET['q'] ?? '')),
+  'status' => trim((string)($_GET['status'] ?? '')),
+  'prioridad' => trim((string)($_GET['prioridad'] ?? '')),
+  'responsable' => (int)($_GET['responsable'] ?? 0),
+];
+$tareaFilters['q'] = function_exists('mb_substr') ? mb_substr($tareaFilters['q'], 0, 100) : substr($tareaFilters['q'], 0, 100);
+$tareaFlash = $_SESSION['tareas_flash'] ?? [];
+unset($_SESSION['tareas_flash']);
+if ($route === 'tareas' && $user && $canViewTareas) {
+  tareas_ensure_schema($db);
+  if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $tareaResult = tareas_handle_post($db, $user, $canAssignTareas, $isAdmin);
+    if (!empty($tareaResult['success'])) {
+      $_SESSION['tareas_flash'] = [$tareaResult['success']];
+      redirect(route_url('tareas'));
+    }
+    if (!empty($tareaResult['error'])) {
+      $tareaErrors[] = $tareaResult['error'];
+    }
+  }
+  $tareaMessages = array_merge($tareaFlash, $tareaMessages);
+  $tareaRows = tareas_fetch_for_user($db, $user['id'] ?? 0, $canAssignTareas, $tareaFilters);
+  $tareaUsers = $canAssignTareas ? tareas_fetch_users($db, $user['id'] ?? 0) : [];
+  if ($tareaFilters['status'] === 'completada') {
+    $tareaView = 'archivadas';
+  } elseif ($tareaFilters['status'] === 'pendiente') {
+    $tareaView = 'pendientes';
+  } else {
+    $tareaView = 'todas';
+  }
+}
+
 $frameworkAssets = bootstrap_assets();
 $appCssUrl = asset('assets/app.css');
 $appJsUrl = asset('assets/app.js');
@@ -354,13 +398,16 @@ if (is_file($appJsVersionPath)) {
     $dashboardConfig = load_dashboard_config($dashboardConfigPath);
 
     $dashboardMenu = dashboard_menu($dashboardConfig);
-    $dashboardMenu = array_values(array_filter($dashboardMenu, function ($item) use ($canAdmin, $canAccessRrhh, $canAccessAdminArea) {
+    $dashboardMenu = array_values(array_filter($dashboardMenu, function ($item) use ($canAdmin, $canAccessRrhh, $canAccessAdminArea, $canViewTareas) {
       $routeKey = $item['route'] ?? '';
       if ($routeKey === 'usuarios' || $routeKey === 'solicitudes' || $routeKey === 'historial' || $routeKey === 'contactos' || $routeKey === 'database') {
         return $canAdmin;
       }
       if ($routeKey === 'herramientas') {
         return $canAccessRrhh || $canAccessAdminArea;
+      }
+      if ($routeKey === 'tareas') {
+        return true;
       }
       if ($routeKey === 'archivos') {
         return $canAccessRrhh || $canAccessAdminArea;
@@ -400,6 +447,16 @@ if (is_file($appJsVersionPath)) {
       } catch (Throwable $e) {
         $dashboardLoadError = (string)$e->getMessage();
       }
+      $dashboardTasks = ['rows' => [], 'total' => 0];
+      if ($user && $canViewTareas && function_exists('tareas_pending_summary')) {
+        try {
+          $dashboardTasks = tareas_pending_summary($db, (int)($user['id'] ?? 0), 5);
+        } catch (Throwable $e) {
+          $dashboardTasks = ['rows' => [], 'total' => 0];
+        }
+      }
+      $dashboardData['tasks'] = $dashboardTasks;
+      $dashboardData['tasksVisible'] = (bool)($user && $canViewTareas);
       ?>
       <?php require __DIR__ . '/../app/Views/dashboard/index.php'; ?>
     <?php else: ?>
@@ -2404,6 +2461,8 @@ if (is_file($appJsVersionPath)) {
               $ticketIsAdmin = (bool)$isAdmin;
               require __DIR__ . '/../app/Views/tickets/index.php';
               ?>
+            <?php elseif ($route === 'tareas'): ?>
+              <?php require __DIR__ . '/../app/Views/tareas/index.php'; ?>
             <?php elseif ($route === 'solicitudes'): ?>
               <?php if (!$canAdmin): ?>
                 <div class="notice">No tienes permisos para acceder a solicitudes.</div>
