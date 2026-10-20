@@ -359,6 +359,20 @@ if ($route === 'tareas' && $user && $canViewTareas) {
   }
 }
 
+$calendarTasks = [];
+$calendarMonth = trim((string)($_GET['mes'] ?? date('Y-m')));
+$calendarMonthDate = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $calendarMonth)
+  ? DateTimeImmutable::createFromFormat('!Y-m', $calendarMonth)
+  : false;
+if (!$calendarMonthDate || $calendarMonthDate->format('Y-m') !== $calendarMonth) {
+  $calendarMonthDate = new DateTimeImmutable('first day of this month');
+  $calendarMonth = $calendarMonthDate->format('Y-m');
+}
+if ($route === 'calendario' && $user && $canViewTareas) {
+  tareas_ensure_schema($db);
+  $calendarTasks = tareas_fetch_for_user($db, $user['id'] ?? 0, $canAssignTareas);
+}
+
 $frameworkAssets = bootstrap_assets();
 $appCssUrl = asset('assets/app.css');
 $appJsUrl = asset('assets/app.js');
@@ -2463,6 +2477,8 @@ if (is_file($appJsVersionPath)) {
               ?>
             <?php elseif ($route === 'tareas'): ?>
               <?php require __DIR__ . '/../app/Views/tareas/index.php'; ?>
+            <?php elseif ($route === 'calendario'): ?>
+              <?php require __DIR__ . '/../app/Views/calendario/index.php'; ?>
             <?php elseif ($route === 'solicitudes'): ?>
               <?php if (!$canAdmin): ?>
                 <div class="notice">No tienes permisos para acceder a solicitudes.</div>

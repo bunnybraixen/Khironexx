@@ -18,7 +18,10 @@ $e = function ($value) {
       <h3>Tareas</h3>
       <p class="subtle">Asigna tareas a otros usuarios y marca las tuyas como listas para archivarlas.</p>
     </div>
-    <span class="chip"><?php echo $tareaCanAssign ? 'Administración' : 'Mis tareas'; ?></span>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <a class="btn secondary" href="<?php echo $e(route_url('calendario')); ?>">Ver calendario</a>
+      <span class="chip"><?php echo $tareaCanAssign ? 'Administración' : 'Mis tareas'; ?></span>
+    </div>
   </div>
 
   <?php foreach ($tareaMessages as $message): ?>

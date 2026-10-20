@@ -1,0 +1,1 @@
+[2026-10-20 15:47:30] Unhandled exception {"incident":"inc_6ad770f21aacb7.29203671","type":"Error","message":"Call to a member function execute() on bool","file":"C:\\xampp\\htdocs\\khironexx\\Khironexx\\web\\index.php","line":2993,"route":"historial","uri":"/khironexx/Khironexx/dashboard/?route=historial"}

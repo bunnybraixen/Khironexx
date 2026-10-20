@@ -60,6 +60,7 @@ return [
         ['label' => 'Solicitudes', 'route' => 'solicitudes'],
         ['label' => 'Tickets de soporte', 'route' => 'tickets'],
         ['label' => 'Tareas', 'route' => 'tareas'],
+        ['label' => 'Calendario', 'route' => 'calendario'],
         ['label' => 'Herramientas', 'route' => 'herramientas'],
         ['label' => 'Archivos compartidos', 'route' => 'archivos'],
         ['label' => 'Historial', 'route' => 'historial'],

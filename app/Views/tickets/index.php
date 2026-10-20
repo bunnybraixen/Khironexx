@@ -166,6 +166,14 @@ $ticketModuleLabels = [
                         </select>
                         <button class="btn secondary" type="submit">Guardar seguimiento</button>
                       </form>
+                      <?php if (in_array((string)$ticket['status'], ['resuelto', 'cerrado'], true)): ?>
+                        <form method="post" action="<?php echo htmlspecialchars(route_url('tickets'), ENT_QUOTES, 'UTF-8'); ?>" class="stack compact" onsubmit="return confirm('¿Eliminar definitivamente este ticket y su historial de mensajes? Esta acción no se puede deshacer.');">
+                          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(tickets_csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                          <input type="hidden" name="ticket_action" value="delete">
+                          <input type="hidden" name="ticket_id" value="<?php echo (int)$ticket['id']; ?>">
+                          <button class="btn danger" type="submit">Eliminar ticket</button>
+                        </form>
+                      <?php endif; ?>
                     </td>
                   <?php endif; ?>
                   <td>

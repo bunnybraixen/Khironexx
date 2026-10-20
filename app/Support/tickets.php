@@ -65,6 +65,73 @@ if (!function_exists('tickets_handle_post')) {
             return ['success' => 'Seguimiento del ticket actualizado.'];
         }
 
+        if ($action === 'delete' && $isAdmin) {
+            $ticketId = (int)($_POST['ticket_id'] ?? 0);
+            if ($ticketId <= 0) {
+                return ['error' => 'Selecciona un ticket válido para eliminar.'];
+            }
+
+            try {
+                $db->begin_transaction();
+                $ticketStmt = $db->prepare('SELECT status FROM tickets_soporte WHERE id = ? FOR UPDATE');
+                if (!$ticketStmt) {
+                    $db->rollback();
+                    return ['error' => 'No se pudo verificar el ticket.'];
+                }
+                $ticketStmt->bind_param('i', $ticketId);
+                if (!$ticketStmt->execute()) {
+                    $ticketStmt->close();
+                    $db->rollback();
+                    return ['error' => 'No se pudo verificar el ticket.'];
+                }
+                $ticketResult = $ticketStmt->get_result();
+                $ticketRow = $ticketResult ? $ticketResult->fetch_assoc() : null;
+                $ticketStmt->close();
+
+                if (!$ticketRow || !in_array((string)$ticketRow['status'], ['resuelto', 'cerrado'], true)) {
+                    $db->rollback();
+                    return ['error' => 'Solo se pueden eliminar tickets resueltos o cerrados.'];
+                }
+
+                // Elimina primero la conversación para funcionar también si la FK no tiene ON DELETE CASCADE.
+                if (function_exists('db_table_exists') && db_table_exists($db, 'tickets_mensajes')) {
+                    $messagesStmt = $db->prepare('DELETE FROM tickets_mensajes WHERE ticket_id = ?');
+                    if (!$messagesStmt) {
+                        $db->rollback();
+                        return ['error' => 'No se pudo preparar la eliminación de los mensajes del ticket.'];
+                    }
+                    $messagesStmt->bind_param('i', $ticketId);
+                    if (!$messagesStmt->execute()) {
+                        $messagesStmt->close();
+                        $db->rollback();
+                        return ['error' => 'No se pudieron eliminar los mensajes del ticket.'];
+                    }
+                    $messagesStmt->close();
+                }
+
+                $deleteStmt = $db->prepare('DELETE FROM tickets_soporte WHERE id = ?');
+                if (!$deleteStmt) {
+                    $db->rollback();
+                    return ['error' => 'No se pudo preparar la eliminación del ticket.'];
+                }
+                $deleteStmt->bind_param('i', $ticketId);
+                if (!$deleteStmt->execute() || $deleteStmt->affected_rows !== 1) {
+                    $deleteStmt->close();
+                    $db->rollback();
+                    return ['error' => 'No se pudo eliminar el ticket.'];
+                }
+                $deleteStmt->close();
+                $db->commit();
+                return ['success' => 'Ticket resuelto eliminado junto con su historial de mensajes.'];
+            } catch (Throwable $e) {
+                try {
+                    $db->rollback();
+                } catch (Throwable $ignored) {
+                }
+                return ['error' => 'Ocurrió un problema al eliminar el ticket. No se guardaron cambios.'];
+            }
+        }
+
         if ($action === 'comment') {
             $ticketId = (int)($_POST['ticket_id'] ?? 0);
             $message = trim((string)($_POST['mensaje'] ?? ''));
