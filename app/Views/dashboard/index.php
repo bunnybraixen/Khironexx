@@ -13,6 +13,7 @@ $totalTrainers = (int)($totals['relatores'] ?? 0);
 $totalTrainings = (int)($totals['capacitaciones'] ?? 0);
 $birthdayCount = is_array($dashboardBirthdays) ? count($dashboardBirthdays) : 0;
 $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
+$canViewTareas = $canViewTareas ?? !empty($dashboardData['tasksVisible']);
 ?>
 <div class="dashboard">
   <?php require __DIR__ . '/../layout/sidebar.php'; ?>
@@ -64,6 +65,14 @@ $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
         font-weight: 600;
       }
 
+      .widget-calendar {
+        grid-column: span 12 !important;
+        grid-row: auto !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        content-visibility: visible !important;
+      }
+
       .widget-base {
         grid-column: span 12 !important;
         grid-row: auto !important;
@@ -108,6 +117,7 @@ $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
           grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
         }
 
+        .widget-calendar,
         .widget-contact,
         .widget-birthdays,
         .widget-alert,
@@ -148,6 +158,13 @@ $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
     </style>
 
     <div class="dashboard-grid">
+      <?php if (!empty($canViewTareas)): ?>
+        <?php
+        $calTargetRoute = 'dashboard';
+        $calCollapsible = true;
+        require __DIR__ . '/../calendario/calendar_widget.php';
+        ?>
+      <?php endif; ?>
       <div class="widget-card widget-base">
         <div class="widget-head">
           <h3>Base de datos</h3>

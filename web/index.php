@@ -368,7 +368,7 @@ if (!$calendarMonthDate || $calendarMonthDate->format('Y-m') !== $calendarMonth)
   $calendarMonthDate = new DateTimeImmutable('first day of this month');
   $calendarMonth = $calendarMonthDate->format('Y-m');
 }
-if ($route === 'calendario' && $user && $canViewTareas) {
+if (in_array($route, ['calendario', 'dashboard'], true) && $user && $canViewTareas) {
   tareas_ensure_schema($db);
   $calendarTasks = tareas_fetch_for_user($db, $user['id'] ?? 0, $canAssignTareas);
 }
@@ -420,7 +420,7 @@ if (is_file($appJsVersionPath)) {
       if ($routeKey === 'herramientas') {
         return $canAccessRrhh || $canAccessAdminArea;
       }
-      if ($routeKey === 'tareas') {
+      if ($routeKey === 'tareas' || $routeKey === 'calendario') {
         return true;
       }
       if ($routeKey === 'archivos') {
@@ -471,6 +471,9 @@ if (is_file($appJsVersionPath)) {
       }
       $dashboardData['tasks'] = $dashboardTasks;
       $dashboardData['tasksVisible'] = (bool)($user && $canViewTareas);
+      $dashboardData['calendarTasks'] = $calendarTasks;
+      $dashboardData['calendarMonth'] = $calendarMonth;
+      $dashboardData['calendarMonthDate'] = $calendarMonthDate;
       ?>
       <?php require __DIR__ . '/../app/Views/dashboard/index.php'; ?>
     <?php else: ?>

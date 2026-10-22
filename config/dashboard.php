@@ -50,7 +50,11 @@ return [
         ['label' => 'Administrador ajustes', 'route' => 'usuarios'],
         ['label' => 'Gestión de base de datos', 'route' => 'database'],
         ['label' => 'Dashboard (resumen)', 'route' => 'dashboard'],
+        ['label' => 'Tareas', 'route' => 'tareas'],
+        ['label' => 'Calendario', 'route' => 'calendario'],
         ['label' => 'Contactos', 'route' => 'contactos'],
+        ['label' => 'Tareas', 'route' => 'tareas'],
+        ['label' => 'Calendario', 'route' => 'calendario'],
         ['label' => 'Postulantes', 'route' => 'postulantes'],
         ['label' => 'Practicantes', 'route' => 'practicantes'],
         ['label' => 'Relatores', 'route' => 'relatores'],
@@ -59,10 +63,9 @@ return [
         ['label' => 'Informes', 'route' => 'informes'],
         ['label' => 'Solicitudes', 'route' => 'solicitudes'],
         ['label' => 'Tickets de soporte', 'route' => 'tickets'],
-        ['label' => 'Tareas', 'route' => 'tareas'],
-        ['label' => 'Calendario', 'route' => 'calendario'],
         ['label' => 'Herramientas', 'route' => 'herramientas'],
         ['label' => 'Archivos compartidos', 'route' => 'archivos'],
         ['label' => 'Historial', 'route' => 'historial'],
     ],
 ];
+

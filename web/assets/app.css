@@ -1013,6 +1013,7 @@ body.dashboard-body {
   font-size: 18px;
 }
 
+.widget-calendar,
 .widget-base {
   grid-column: span 12;
 }
@@ -1259,6 +1260,7 @@ body.sidebar-collapsed .sidebar-dot {
     grid-template-columns: 1fr;
   }
 
+  .widget-calendar,
   .widget-contact,
   .widget-base,
   .widget-birthdays,
