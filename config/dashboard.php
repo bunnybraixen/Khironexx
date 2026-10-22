@@ -53,8 +53,6 @@ return [
         ['label' => 'Tareas', 'route' => 'tareas'],
         ['label' => 'Calendario', 'route' => 'calendario'],
         ['label' => 'Contactos', 'route' => 'contactos'],
-        ['label' => 'Tareas', 'route' => 'tareas'],
-        ['label' => 'Calendario', 'route' => 'calendario'],
         ['label' => 'Postulantes', 'route' => 'postulantes'],
         ['label' => 'Practicantes', 'route' => 'practicantes'],
         ['label' => 'Relatores', 'route' => 'relatores'],
