@@ -1045,7 +1045,8 @@ if (!function_exists('practicantes_build_data')) {
         }
         $optionalSelectSql = $optionalSelectColumns ? ", " . implode(', ', $optionalSelectColumns) : '';
 
-        $sql = "SELECT e.id, e.photo, e.full_name, e.email, e.rut, e.telefono, e.fecha_inicio, e.fecha_fin, e.status,
+        $photoSelectSql = in_array('photo', $practicantesColumns, true) ? 'e.photo' : 'NULL AS photo';
+        $sql = "SELECT e.id, " . $photoSelectSql . ", e.full_name, e.email, e.rut, e.telefono, e.fecha_inicio, e.fecha_fin, e.status,
                 e.correo_institucional, e.horas_exigidas, e.carrera, e.universidad" . $optionalSelectSql . ",
                 d.name AS department, p.name AS position, COALESCE(SUM(h.horas),0) AS horas_cumplidas
                 FROM practicantes e
@@ -1057,11 +1058,21 @@ if (!function_exists('practicantes_build_data')) {
         }
         $sql .= " GROUP BY e.id ORDER BY " . $sortSql . " LIMIT 200";
         $stmt = $db->prepare($sql);
-        if ($params) {
-            $stmt->bind_param($types, ...$params);
+        $rows = null;
+        if (!$stmt) {
+            $errors[] = "No se pudo preparar la consulta de practicantes. Revisa que las tablas y columnas de la base de datos estén disponibles.";
+        } else {
+            try {
+                if ($params) {
+                    $stmt->bind_param($types, ...$params);
+                }
+                $stmt->execute();
+                $rows = $stmt->get_result();
+            } catch (Throwable $e) {
+                $errors[] = "No se pudo cargar el listado de practicantes. Revisa la estructura de la base de datos.";
+            }
+            $stmt->close();
         }
-        $stmt->execute();
-        $rows = $stmt->get_result();
 
         $departmentsList = $db->query("SELECT id, name FROM departamentos ORDER BY name ASC");
         $positionsList = $db->query("SELECT id, name FROM cargos ORDER BY name ASC");

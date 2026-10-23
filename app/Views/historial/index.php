@@ -7,6 +7,10 @@
     <span class="chip">Auditoria</span>
   </div>
 
+  <?php if (!empty($historialError)): ?>
+    <div class="notice"><?php echo htmlspecialchars($historialError); ?></div>
+  <?php endif; ?>
+
   <form method="get" class="filters">
     <input type="hidden" name="route" value="historial">
     <div class="grid two">
@@ -117,7 +121,7 @@
             </td>
             <td><?php echo htmlspecialchars((string)($row['fecha'] ?? '')); ?></td>
           </tr>
-        <?php endwhile; else: ?>
+        <?php endwhile; elseif (empty($historialError)): ?>
           <tr>
             <td colspan="9" class="subtle" style="text-align:center; padding:20px;">No se encontraron registros de historial.</td>
           </tr>

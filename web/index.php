@@ -2923,79 +2923,99 @@ if (is_file($appJsVersionPath)) {
                 <div class="notice">No tienes permisos para acceder al historial.</div>
               <?php else: ?>
                 <?php
-                $historialCols = db_table_columns($db, 'historial');
                 $filterGeneral = trim((string)($_GET['q'] ?? ''));
                 $filterTabla = trim((string)($_GET['tabla'] ?? ''));
                 $filterAccion = trim((string)($_GET['accion'] ?? ''));
                 $filterFechaDesde = trim((string)($_GET['fecha_desde'] ?? ''));
                 $filterFechaHasta = trim((string)($_GET['fecha_hasta'] ?? ''));
-
+                $historialRows = null;
+                $historialCount = 0;
+                $historialError = '';
                 $tablasDisponibles = [];
-                if (in_array('tabla_afectada', $historialCols, true)) {
-                  $tablasRes = $db->query("SELECT DISTINCT tabla_afectada FROM historial WHERE tabla_afectada IS NOT NULL AND TRIM(tabla_afectada) <> '' ORDER BY tabla_afectada ASC LIMIT 100");
-                  if ($tablasRes) {
-                    while ($tablaRow = $tablasRes->fetch_assoc()) {
-                      $tablasDisponibles[] = (string)$tablaRow['tabla_afectada'];
+
+                if (!db_table_exists($db, 'historial')) {
+                  $historialError = "La tabla historial no existe en esta base de datos. La vista se muestra, pero todavía no hay registros de auditoría disponibles.";
+                } else {
+                  $historialCols = db_table_columns($db, 'historial');
+                  $requiredHistorialCols = ['id_historial', 'usuario_id', 'fecha'];
+                  if (array_diff($requiredHistorialCols, $historialCols)) {
+                    $historialError = "La tabla historial existe, pero su estructura no coincide con la que necesita esta sección.";
+                  } else {
+                    if (in_array('tabla_afectada', $historialCols, true)) {
+                      $tablasRes = $db->query("SELECT DISTINCT tabla_afectada FROM historial WHERE tabla_afectada IS NOT NULL AND TRIM(tabla_afectada) <> '' ORDER BY tabla_afectada ASC LIMIT 100");
+                      if ($tablasRes) {
+                        while ($tablaRow = $tablasRes->fetch_assoc()) {
+                          $tablasDisponibles[] = (string)$tablaRow['tabla_afectada'];
+                        }
+                      }
+                    }
+
+                    $filters = [];
+                    $params = [];
+                    $types = '';
+                    if ($filterGeneral !== '') {
+                      $searchCols = array_values(array_intersect(['tabla_afectada', 'accion', 'descripcion'], $historialCols));
+                      if ($searchCols) {
+                        $tokens = preg_split('/\s+/', $filterGeneral, -1, PREG_SPLIT_NO_EMPTY);
+                        foreach ($tokens as $token) {
+                          $tokenFilters = [];
+                          foreach ($searchCols as $col) {
+                            $tokenFilters[] = "h." . $col . " LIKE ?";
+                            $params[] = '%' . $token . '%';
+                            $types .= 's';
+                          }
+                          if ($tokenFilters) {
+                            $filters[] = '(' . implode(' OR ', $tokenFilters) . ')';
+                          }
+                        }
+                      }
+                    }
+                    if ($filterTabla !== '' && in_array('tabla_afectada', $historialCols, true)) {
+                      $filters[] = "h.tabla_afectada = ?";
+                      $params[] = $filterTabla;
+                      $types .= 's';
+                    }
+                    if ($filterAccion !== '' && in_array('accion', $historialCols, true)) {
+                      $filters[] = "UPPER(h.accion) = ?";
+                      $params[] = strtoupper($filterAccion);
+                      $types .= 's';
+                    }
+                    if ($filterFechaDesde !== '') {
+                      $filters[] = "DATE(h.fecha) >= ?";
+                      $params[] = $filterFechaDesde;
+                      $types .= 's';
+                    }
+                    if ($filterFechaHasta !== '') {
+                      $filters[] = "DATE(h.fecha) <= ?";
+                      $params[] = $filterFechaHasta;
+                      $types .= 's';
+                    }
+
+                    $sql = "SELECT h.*, u.full_name AS usuario_nombre
+                            FROM historial h
+                            LEFT JOIN usuarios u ON u.id = h.usuario_id";
+                    if ($filters) {
+                      $sql .= " WHERE " . implode(" AND ", $filters);
+                    }
+                    $sql .= " ORDER BY h.fecha DESC, h.id_historial DESC LIMIT 200";
+                    $stmt = $db->prepare($sql);
+                    if (!$stmt) {
+                      $historialError = "No se pudo preparar la consulta del historial. Revisa la estructura de la base de datos.";
+                    } else {
+                      try {
+                        if ($params) {
+                          $stmt->bind_param($types, ...$params);
+                        }
+                        $stmt->execute();
+                        $historialRows = $stmt->get_result();
+                        $historialCount = $historialRows ? (int)$historialRows->num_rows : 0;
+                      } catch (Throwable $e) {
+                        $historialError = "No se pudo cargar el historial. Revisa la estructura de la base de datos.";
+                      }
+                      $stmt->close();
                     }
                   }
                 }
-
-                $filters = [];
-                $params = [];
-                $types = '';
-                if ($filterGeneral !== '') {
-                  $searchCols = ['tabla_afectada', 'accion', 'descripcion'];
-                  $searchCols = array_values(array_intersect($searchCols, $historialCols));
-                  if ($searchCols) {
-                    $tokens = preg_split('/\s+/', $filterGeneral, -1, PREG_SPLIT_NO_EMPTY);
-                    foreach ($tokens as $token) {
-                      $tokenFilters = [];
-                      foreach ($searchCols as $col) {
-                        $tokenFilters[] = $col . " LIKE ?";
-                        $params[] = '%' . $token . '%';
-                        $types .= 's';
-                      }
-                      if ($tokenFilters) {
-                        $filters[] = '(' . implode(' OR ', $tokenFilters) . ')';
-                      }
-                    }
-                  }
-                }
-                if ($filterTabla !== '' && in_array('tabla_afectada', $historialCols, true)) {
-                  $filters[] = "tabla_afectada = ?";
-                  $params[] = $filterTabla;
-                  $types .= 's';
-                }
-                if ($filterAccion !== '' && in_array('accion', $historialCols, true)) {
-                  $filters[] = "UPPER(accion) = ?";
-                  $params[] = strtoupper($filterAccion);
-                  $types .= 's';
-                }
-                if ($filterFechaDesde !== '' && in_array('fecha', $historialCols, true)) {
-                  $filters[] = "DATE(fecha) >= ?";
-                  $params[] = $filterFechaDesde;
-                  $types .= 's';
-                }
-                if ($filterFechaHasta !== '' && in_array('fecha', $historialCols, true)) {
-                  $filters[] = "DATE(fecha) <= ?";
-                  $params[] = $filterFechaHasta;
-                  $types .= 's';
-                }
-
-                $sql = "SELECT h.*, u.full_name AS usuario_nombre
-                        FROM historial h
-                        LEFT JOIN usuarios u ON u.id = h.usuario_id";
-                if ($filters) {
-                  $sql .= " WHERE " . implode(" AND ", $filters);
-                }
-                $sql .= " ORDER BY h.fecha DESC, h.id_historial DESC LIMIT 200";
-                $stmt = $db->prepare($sql);
-                if ($params) {
-                  $stmt->bind_param($types, ...$params);
-                }
-                $stmt->execute();
-                $historialRows = $stmt->get_result();
-                $historialCount = $historialRows ? (int)$historialRows->num_rows : 0;
                 ?>
                 <?php require __DIR__ . '/../app/Views/historial/index.php'; ?>
               <?php endif; ?>
