@@ -192,6 +192,10 @@ if (!function_exists('tareas_handle_post')) {
                     return ['error' => 'No se pudo guardar la tarea. Inténtalo nuevamente.'];
                 }
                 $stmt->close();
+                $tareaId = (int)$db->insert_id;
+                if ($tareaId > 0 && function_exists('notificaciones_create')) {
+                    notificaciones_create($db, $asignadoA, 'tarea_asignada', 'Nueva tarea asignada', $titulo, 'tareas', $tareaId);
+                }
             } catch (Throwable $e) {
                 return ['error' => 'No se pudo guardar la tarea. Inténtalo nuevamente.'];
             }

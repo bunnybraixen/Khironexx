@@ -43,6 +43,15 @@ if (!function_exists('tickets_handle_post')) {
             if (!$stmt->execute()) {
                 return ['error' => 'No se pudo guardar el ticket. Inténtalo nuevamente.'];
             }
+            $ticketId = (int)$db->insert_id;
+            $stmt->close();
+            if ($ticketId > 0 && function_exists('notificaciones_create_for_ticket_admins')) {
+                try {
+                    notificaciones_create_for_ticket_admins($db, $ticketId, $userId, 'Nuevo ticket de soporte', 'Se registró el ticket #' . $ticketId . '.', $ticketId, 'ticket_creado');
+                } catch (Throwable $e) {
+                    // El aviso no debe impedir el registro del ticket.
+                }
+            }
             return ['success' => 'Ticket registrado correctamente.'];
         }
 
@@ -53,6 +62,21 @@ if (!function_exists('tickets_handle_post')) {
                 return ['error' => 'El ticket o el estado seleccionado no son válidos.'];
             }
 
+            $ticketStmt = $db->prepare('SELECT user_id, status, asunto FROM tickets_soporte WHERE id = ? LIMIT 1');
+            if (!$ticketStmt) {
+                return ['error' => 'No se pudo consultar el ticket.'];
+            }
+            $ticketStmt->bind_param('i', $ticketId);
+            if (!$ticketStmt->execute()) {
+                $ticketStmt->close();
+                return ['error' => 'No se pudo consultar el ticket.'];
+            }
+            $ticketInfo = $ticketStmt->get_result()->fetch_assoc();
+            $ticketStmt->close();
+            if (!$ticketInfo) {
+                return ['error' => 'El ticket indicado ya no existe.'];
+            }
+            $wasResolved = (string)$ticketInfo['status'] === 'resuelto';
             $resolvedAt = in_array($status, ['resuelto', 'cerrado'], true) ? date('Y-m-d H:i:s') : null;
             $stmt = $db->prepare("UPDATE tickets_soporte SET status = ?, resolved_at = ? WHERE id = ?");
             if (!$stmt) {
@@ -61,6 +85,14 @@ if (!function_exists('tickets_handle_post')) {
             $stmt->bind_param('ssi', $status, $resolvedAt, $ticketId);
             if (!$stmt->execute() || $stmt->affected_rows < 0) {
                 return ['error' => 'No se pudo actualizar el ticket.'];
+            }
+            $stmt->close();
+            if ($status === 'resuelto' && !$wasResolved && function_exists('notificaciones_create')) {
+                try {
+                    notificaciones_create($db, (int)$ticketInfo['user_id'], 'ticket_resuelto', 'Tu ticket fue resuelto', 'El ticket #' . $ticketId . ' (' . (string)$ticketInfo['asunto'] . ') fue marcado como resuelto.', 'tickets', $ticketId);
+                } catch (Throwable $e) {
+                    // El aviso no debe impedir la actualización del ticket.
+                }
             }
             return ['success' => 'Seguimiento del ticket actualizado.'];
         }
@@ -161,6 +193,19 @@ if (!function_exists('tickets_handle_post')) {
             $stmt->bind_param('iis', $ticketId, $userId, $message);
             if (!$stmt->execute()) {
                 return ['error' => 'No se pudo guardar el mensaje.'];
+            }
+            $messageId = (int)$db->insert_id;
+            if ($messageId > 0 && function_exists('notificaciones_create')) {
+                try {
+                    $ticketOwnerId = (int)($ownerRow['user_id'] ?? 0);
+                    if ($ticketOwnerId === $userId && function_exists('notificaciones_create_for_ticket_admins')) {
+                        notificaciones_create_for_ticket_admins($db, $ticketId, $userId, 'Nueva respuesta en un ticket', 'Un usuario respondió una solicitud de soporte.', $messageId);
+                    } elseif ($ticketOwnerId !== $userId) {
+                        notificaciones_create($db, $ticketOwnerId, 'ticket_respuesta', 'Nueva respuesta en tu ticket', 'Hay una nueva respuesta en el ticket #' . $ticketId . '.', 'tickets', $messageId);
+                    }
+                } catch (Throwable $e) {
+                    // Una falla al crear el aviso no debe impedir guardar el mensaje del ticket.
+                }
             }
             $touchStmt = $db->prepare('UPDATE tickets_soporte SET updated_at = NOW() WHERE id = ?');
             if ($touchStmt) {

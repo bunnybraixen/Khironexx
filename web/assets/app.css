@@ -1705,6 +1705,137 @@ body.sidebar-collapsed .sidebar-link:focus-visible::after {
   margin: 0;
 }
 
+.notification-trigger {
+  position: relative;
+  width: 42px;
+  min-width: 42px;
+  padding: 8px;
+  border-radius: 999px;
+  font-size: 16px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #111827;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.notification-menu {
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(70vh, 520px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.notification-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+
+.notification-menu-header span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.notification-form {
+  margin: 0;
+}
+
+.notification-item {
+  width: 100%;
+  display: block;
+  padding: 12px 15px;
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-item:hover,
+.notification-item:focus-visible {
+  background: #f1f5f9;
+  outline: none;
+}
+
+.notification-item.is-unread {
+  background: #eff6ff;
+}
+
+.notification-item-title,
+.notification-item-message,
+.notification-item-date {
+  display: block;
+}
+
+.notification-item-title {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.notification-item-message {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.notification-item-date {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.notification-empty {
+  padding: 16px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.notification-mark-all {
+  margin: 0;
+  padding: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.notification-mark-all button {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notification-mark-all button:hover,
+.notification-mark-all button:focus-visible {
+  background: #dbeafe;
+}
+
 .user-menu-item {
   width: 100%;
   display: flex;

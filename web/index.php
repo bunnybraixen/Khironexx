@@ -199,6 +199,31 @@ $canAdminArea = $isAdmin || $isAdministracion;
 $canAccessRrhh = $canRrhhAdd || $canRead;
 $canAccessAdminArea = $canAdminArea || $canRead;
 $canAdmin = $isAdmin;
+
+$notificationsAvailable = db_table_exists($db, 'notificaciones');
+$notificationRows = [];
+$notificationUnreadCount = 0;
+$notificationCsrfToken = '';
+if ($user && $notificationsAvailable) {
+  if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['notificacion_action'])) {
+    $notificationResult = notificaciones_handle_post($db, (int)($user['id'] ?? 0));
+    if (!empty($notificationResult['redirect']) && notificaciones_route_allowed($notificationResult['redirect'])) {
+      redirect(route_url($notificationResult['redirect']));
+    }
+    if (!empty($notificationResult['success'])) {
+      redirect(route_url($route));
+    }
+    $_SESSION['notificaciones_flash'] = (string)($notificationResult['error'] ?? 'No se pudo procesar la notificación.');
+    redirect(route_url($route));
+  }
+
+  notificaciones_create_due_task_reminders($db, (int)($user['id'] ?? 0));
+  $notificationRows = notificaciones_fetch_latest($db, (int)($user['id'] ?? 0), 8);
+  $notificationUnreadCount = notificaciones_unread_count($db, (int)($user['id'] ?? 0));
+  $notificationCsrfToken = notificaciones_csrf_token();
+}
+$notificationFlash = (string)($_SESSION['notificaciones_flash'] ?? '');
+unset($_SESSION['notificaciones_flash']);
 // Tareas: todos los usuarios ven la pagina y sus tareas pendientes;
 // solo administradores (admin / administracion operativa) pueden asignar.
 $canAssignTareas = $isAdmin || $isAdministracion;
@@ -349,7 +374,7 @@ if ($route === 'tareas' && $user && $canViewTareas) {
   }
   $tareaMessages = array_merge($tareaFlash, $tareaMessages);
   $tareaRows = tareas_fetch_for_user($db, $user['id'] ?? 0, $canAssignTareas, $tareaFilters);
-  $tareaUsers = $canAssignTareas ? tareas_fetch_users($db, $user['id'] ?? 0) : [];
+  $tareaUsers = $canAssignTareas ? tareas_fetch_users($db) : [];
   if ($tareaFilters['status'] === 'completada') {
     $tareaView = 'archivadas';
   } elseif ($tareaFilters['status'] === 'pendiente') {
