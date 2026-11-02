@@ -415,6 +415,16 @@ if (is_file($appJsVersionPath)) {
 <html lang="es">
 
 <head>
+  <script>
+    (function () {
+      try {
+        var savedTheme = localStorage.getItem('khironex_theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark-mode');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Khironex</title>

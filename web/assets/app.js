@@ -317,3 +317,21 @@
     });
   });
 })();
+(function () {
+  function initTheme() {
+    var btn = document.getElementById("theme-toggle-btn");
+    if (!btn) return;
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      var isDark = document.documentElement.classList.toggle("dark-mode");
+      try {
+        localStorage.setItem("khironex_theme", isDark ? "dark" : "light");
+      } catch (err) {}
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initTheme);
+  } else {
+    initTheme();
+  }
+})();

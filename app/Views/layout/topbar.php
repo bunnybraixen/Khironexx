@@ -16,6 +16,10 @@
     </div>
   </div>
   <div class="topbar-right">
+    <button class="theme-toggle-btn" type="button" id="theme-toggle-btn" aria-label="Cambiar modo de color" title="Cambiar modo claro / oscuro">
+      <i class="fa-solid fa-moon theme-icon-dark" aria-hidden="true"></i>
+      <i class="fa-solid fa-sun theme-icon-light" aria-hidden="true"></i>
+    </button>
     <div class="user-dropdown notification-dropdown" data-user-dropdown>
       <button class="user-trigger notification-trigger" type="button" data-user-trigger aria-label="Notificaciones" aria-haspopup="true" aria-expanded="false" aria-controls="notification-menu">
         <i class="fa-regular fa-bell" aria-hidden="true"></i>
