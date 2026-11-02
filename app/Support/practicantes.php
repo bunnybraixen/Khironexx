@@ -939,59 +939,10 @@ if (!function_exists('practicantes_build_data')) {
                 }
             }
 
-            if ($formType === 'practicante_delete') {
-                $practicanteId = (int)($_POST['practicante_id'] ?? 0);
-                $confirmDelete = trim((string)($_POST['confirm_delete'] ?? ''));
-                if ($practicanteId > 0 && $confirmDelete === 'si' && $canAdmin) {
-                    $selStmt = $db->prepare("SELECT photo FROM practicantes WHERE id = ? LIMIT 1");
-                    $photoPath = '';
-                    if ($selStmt) {
-                        $selStmt->bind_param('i', $practicanteId);
-                        $selStmt->execute();
-                        $selRow = $selStmt->get_result()->fetch_assoc();
-                        if ($selRow) {
-                            $photoPath = trim((string)($selRow['photo'] ?? ''));
-                        }
-                    }
-
-                    $deleteStmt = $db->prepare("DELETE FROM practicantes WHERE id = ?");
-                    if ($deleteStmt) {
-                        $deleteStmt->bind_param('i', $practicanteId);
-                        if ($deleteStmt->execute()) {
-                            if ($photoPath !== '' && function_exists('sedes_delete_uploaded_file')) {
-                                sedes_delete_uploaded_file($photoPath);
-                            }
-                            $messages[] = "Practicante eliminado correctamente.";
-                            $viewId = 0;
-                            $editId = 0;
-                        } else {
-                            $errors[] = "Error al eliminar el practicante.";
-                        }
-                    } else {
-                        $errors[] = "No se pudo preparar la eliminacion.";
-                    }
-                } else {
-                    $errors[] = "No tienes permisos para eliminar practicantes.";
-                }
-            }
-
-            if (in_array($formType, ['department', 'position'], true)) {
-                $name = trim((string)($_POST['name'] ?? ''));
-                if (!$canAdmin) {
-                    $detail = "Solicitud de actualizacion catalogo " . $formType . ": " . $name;
-                    if (function_exists('create_change_request')) {
-                        create_change_request($db, $userId, 'catalogos', 'crear', $detail);
-                        $messages[] = "Solicitud enviada al Encargado de RRHH.";
-                    } else {
-                        $errors[] = "No tienes permisos para actualizar catalogos.";
-                    }
-                } elseif ($name !== '') {
-                    $table = $formType === 'department' ? 'departamentos' : 'cargos';
-                    $stmt = $db->prepare("INSERT INTO " . $table . " (name) VALUES (?)");
-                    $stmt->bind_param('s', $name);
-                    $stmt->execute();
-                    $messages[] = "Catalogo actualizado.";
-                }
+            if ($formType === 'practicante_status') {
+                $activeModule = 'buscar';
+            } elseif ($formType === 'practicante_delete') {
+                $activeModule = 'buscar';
             }
         }
 
@@ -1056,7 +1007,7 @@ if (!function_exists('practicantes_build_data')) {
         if ($filters) {
             $sql .= " WHERE " . implode(" AND ", $filters);
         }
-        $sql .= " GROUP BY e.id ORDER BY " . $sortSql . " LIMIT 200";
+        $sql .= " GROUP BY e.id ORDER BY CASE WHEN e.status = 'active' THEN 0 ELSE 1 END, " . $sortSql . " LIMIT 200";
         $stmt = $db->prepare($sql);
         $rows = null;
         if (!$stmt) {
@@ -1153,5 +1104,26 @@ if (!function_exists('practicantes_build_data')) {
             'activeModule' => $activeModule,
             'horasPorDia' => $horasPorDia,
         ];
+    }
+}
+
+if (!function_exists('practicantes_fetch_calendar_events')) {
+    function practicantes_fetch_calendar_events(mysqli $db)
+    {
+        $events = [];
+        if (!function_exists('db_table_exists') || !db_table_exists($db, 'practicantes')) return $events;
+        $cols = db_table_columns($db, 'practicantes');
+        if (!in_array('full_name', $cols, true)) return $events;
+        $selects = ['id', 'full_name'];
+        foreach (['fecha_inicio', 'fecha_fin', 'status'] as $col) if (in_array($col, $cols, true)) $selects[] = $col;
+        $query = $db->query("SELECT " . implode(', ', $selects) . " FROM practicantes");
+        if (!$query) return $events;
+        while ($row = $query->fetch_assoc()) {
+            $name = trim((string)($row['full_name'] ?? ''));
+            $status = trim((string)($row['status'] ?? 'active'));
+            if (!empty($row['fecha_inicio']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$row['fecha_inicio'])) $events[] = ['type'=>'practicante_inicio','practicante_id'=>(int)$row['id'],'full_name'=>$name,'fecha'=>(string)$row['fecha_inicio'],'status'=>$status,'titulo'=>'Inicio práctica: '.$name];
+            if (!empty($row['fecha_fin']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$row['fecha_fin'])) $events[] = ['type'=>'practicante_fin','practicante_id'=>(int)$row['id'],'full_name'=>$name,'fecha'=>(string)$row['fecha_fin'],'status'=>$status,'titulo'=>'Término práctica: '.$name];
+        }
+        return $events;
     }
 }

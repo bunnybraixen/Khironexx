@@ -7,6 +7,7 @@ $calTargetRoute = $calTargetRoute ?? 'calendario';
 $calCollapsible = !empty($calCollapsible);
 
 $calendarTasks = $calendarTasks ?? [];
+$calendarPracticantes = $calendarPracticantes ?? [];
 if (empty($calendarMonthDate) || !($calendarMonthDate instanceof DateTimeImmutable)) {
     $calendarMonth = trim((string)($_GET['mes'] ?? date('Y-m')));
     $calendarMonthDate = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $calendarMonth)
@@ -39,6 +40,23 @@ foreach ($calendarTasks as $calendarTask) {
         continue;
     }
     $tasksByDate[(int)$dateObject->format('j')][] = $calendarTask;
+    $monthTaskCount++;
+}
+foreach ($calendarPracticantes as $calendarPracticante) {
+    $eventDate = (string)($calendarPracticante['fecha'] ?? '');
+    $dateObject = DateTimeImmutable::createFromFormat('!Y-m-d', $eventDate);
+    if (!$dateObject || $dateObject->format('Y-m-d') !== $eventDate || $dateObject->format('Y-m') !== $calendarMonth) {
+        continue;
+    }
+    $name = trim((string)($calendarPracticante['full_name'] ?? ''));
+    $tasksByDate[(int)$dateObject->format('j')][] = [
+        'fecha_limite' => $eventDate,
+        'titulo' => (string)($calendarPracticante['titulo'] ?? 'Práctica'),
+        'asignado_a_nombre' => $name,
+        'prioridad' => ($calendarPracticante['type'] ?? '') === 'practicante_fin' ? 'término' : 'inicio',
+        'status' => 'practicante',
+        'event_url' => route_url('practicantes') . '&ui_module=buscar&q=' . rawurlencode($name),
+    ];
     $monthTaskCount++;
 }
 $previousMonth = $monthStart->modify('-1 month')->format('Y-m');
@@ -134,7 +152,7 @@ $currentUrl = route_url($calTargetRoute);
               $isOverdue = !$isCompleted && $dayDate < $today;
               $eventClass = $isCompleted ? ' is-completed' : ($isOverdue ? ' is-overdue' : '');
               $taskSearch = (string)($calendarTask['titulo'] ?? '');
-              $taskUrl = route_url('tareas') . '&q=' . rawurlencode($taskSearch);
+              $taskUrl = !empty($calendarTask['event_url']) ? (string)$calendarTask['event_url'] : (route_url('tareas') . '&q=' . rawurlencode($taskSearch));
               ?>
               <a class="kh-calendar-event<?php echo $eventClass; ?>" href="<?php echo $e($taskUrl); ?>" title="Abrir la lista de tareas">
                 <?php echo $e($calendarTask['titulo'] ?? 'Tarea'); ?>
@@ -231,7 +249,7 @@ $currentUrl = route_url($calTargetRoute);
             $isOverdue = !$isCompleted && $dayDate < $today;
             $eventClass = $isCompleted ? ' is-completed' : ($isOverdue ? ' is-overdue' : '');
             $taskSearch = (string)($calendarTask['titulo'] ?? '');
-            $taskUrl = route_url('tareas') . '&q=' . rawurlencode($taskSearch);
+            $taskUrl = !empty($calendarTask['event_url']) ? (string)$calendarTask['event_url'] : (route_url('tareas') . '&q=' . rawurlencode($taskSearch));
             ?>
             <a class="kh-calendar-event<?php echo $eventClass; ?>" href="<?php echo $e($taskUrl); ?>" title="Abrir la lista de tareas">
               <?php echo $e($calendarTask['titulo'] ?? 'Tarea'); ?>

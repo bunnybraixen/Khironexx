@@ -52,6 +52,7 @@ $searchCarreras = $carreras;
 if ($filterCarrera !== '' && !in_array($filterCarrera, $searchCarreras, true)) {
   $searchCarreras[] = $filterCarrera;
 }
+$departments = $postulantesData['departments'] ?? [];
 ?>
 <style>
   .postulantes-tabs {
@@ -141,8 +142,13 @@ if ($filterCarrera !== '' && !in_array($filterCarrera, $searchCarreras, true)) {
               <input name="universidad_otra" value="<?php echo htmlspecialchars($currentUniversidadOtra); ?>" <?php echo $currentUniversidad === 'otro' ? '' : 'disabled'; ?>>
             </div>
             <div class="field">
-              <label>Area postulacion</label>
-              <input name="area_postulacion" value="<?php echo htmlspecialchars($draftValue('area_postulacion')); ?>">
+              <label>Área postulación</label>
+              <select name="area_postulacion">
+                <option value="">Selecciona un departamento</option>
+                <?php foreach ($departments as $department): ?>
+                  <option value="<?php echo htmlspecialchars($department['name']); ?>" <?php echo $draftValue('area_postulacion') === $department['name'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($department['name']); ?></option>
+                <?php endforeach; ?>
+              </select>
             </div>
             <div class="field">
               <label>Jefe/a de carrera</label>
@@ -241,6 +247,8 @@ if ($filterCarrera !== '' && !in_array($filterCarrera, $searchCarreras, true)) {
                 <td><span class="status-pill status-<?php echo htmlspecialchars($statusKey); ?>"><?php echo htmlspecialchars($postulanteStatuses[$statusKey] ?? $statusKey); ?></span></td>
                 <td><?php echo htmlspecialchars($row['status_updated_at'] ?? $row['created_at']); ?></td>
                 <td>
+                  <a class="btn warning" href="<?php echo htmlspecialchars(route_url('postulantes').'&ui_module=buscar&view='.(int)$row['id']); ?>">Editar</a>
+                  <button class="btn" type="button" onclick="aceptarPostulante(<?php echo (int)$row['id']; ?>, '<?php echo htmlspecialchars(addslashes($row['full_name'])); ?>')">Aceptar</button>
                   <?php if ($canDelete): ?>
                     <form method="post" onsubmit="return confirm('Eliminar postulante <?php echo htmlspecialchars($row['full_name']); ?>? Esta accion eliminara el postulante definitivamente.');">
                       <input type="hidden" name="form_type" value="postulante_delete">
@@ -285,28 +293,7 @@ if ($filterCarrera !== '' && !in_array($filterCarrera, $searchCarreras, true)) {
           <div><span class="info-label">Jefe/a carrera</span><span><?php echo htmlspecialchars($viewPostulante['jefe_carrera'] ?? ''); ?></span></div>
         </div>
         <?php if ($canModify): ?>
-          <form method="post" class="stack compact">
-            <input type="hidden" name="form_type" value="postulante_status">
-            <input type="hidden" name="postulante_id" value="<?php echo (int)$viewPostulante['id']; ?>">
-            <input type="hidden" name="ui_module" value="buscar">
-            <div class="grid two">
-              <div class="field">
-                <label>Actualizar estado</label>
-                <select name="status">
-                  <?php foreach ($postulanteStatuses as $key => $label): ?>
-                    <option value="<?php echo htmlspecialchars($key); ?>" <?php echo ($viewPostulante['status'] ?? '') === $key ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars($label); ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-              <div class="field">
-                <label>Nota</label>
-                <input name="nota" placeholder="Observacion de cambio">
-              </div>
-            </div>
-            <button class="btn" type="submit">Guardar estado</button>
-          </form>
+          <form method="post" class="stack compact" style="margin-top:14px;"><input type="hidden" name="form_type" value="postulante_update"><input type="hidden" name="postulante_id" value="<?php echo (int)$viewPostulante['id']; ?>"><input type="hidden" name="ui_module" value="buscar"><div class="grid two"><div class="field"><label>Nombre completo</label><input name="full_name" required value="<?php echo htmlspecialchars($viewPostulante['full_name']); ?>"></div><div class="field"><label>Correo</label><input name="email" type="email" value="<?php echo htmlspecialchars($viewPostulante['email']??''); ?>"></div><div class="field"><label>Teléfono</label><input name="telefono" value="<?php echo htmlspecialchars($viewPostulante['telefono']??''); ?>"></div><div class="field"><label>Carrera</label><input name="carrera" value="<?php echo htmlspecialchars($viewPostulante['carrera']??''); ?>"></div><div class="field"><label>Universidad</label><input name="universidad" value="<?php echo htmlspecialchars($viewPostulante['universidad']??''); ?>"></div><div class="field"><label>Área</label><select name="area_postulacion"><option value="">Selecciona un departamento</option><?php foreach($departments as $department):?><option value="<?php echo htmlspecialchars($department['name']); ?>" <?php echo $draftValue('area_postulacion') === $department['name'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($department['name']); ?></option><?php endforeach;?></select></div><div class="field"><label>Horas exigidas</label><input name="horas_exigidas" type="number" min="0" value="<?php echo htmlspecialchars((string)($viewPostulante['horas_exigidas']??0)); ?>"></div></div><button class="btn warning" type="submit">Guardar edición</button></form>
         <?php endif; ?>
       </div>
       <div class="card">
@@ -462,6 +449,8 @@ if ($filterCarrera !== '' && !in_array($filterCarrera, $searchCarreras, true)) {
   <input type="hidden" name="ui_module" value="buscar">
 </form>
 
+<form id="acceptPostulanteForm" method="post" style="display:none;"><input type="hidden" name="form_type" value="postulante_accept"><input type="hidden" name="postulante_id" id="acceptPostulanteId"><input type="hidden" name="fecha_inicio" id="acceptFechaInicio"><input type="hidden" name="fecha_fin" id="acceptFechaFin"><input type="hidden" name="fecha_cumpleanos" id="acceptFechaCumpleanos"><input type="hidden" name="ui_module" value="buscar"></form>
+
 <script>
   (function () {
     var tabContainer = document.querySelector('[data-postulantes-tabs]');
@@ -610,4 +599,5 @@ if ($filterCarrera !== '' && !in_array($filterCarrera, $searchCarreras, true)) {
       }
     }
   }
+  function aceptarPostulante(id,nombre){var inicio=prompt('Fecha de inicio de '+nombre+': (AAAA-MM-DD)');if(!inicio)return;var fin=prompt('Fecha de término de '+nombre+': (AAAA-MM-DD)');if(!fin)return;var cumple=prompt('Fecha de cumpleaños de '+nombre+': (AAAA-MM-DD)');if(!cumple)return;if(!/^\d{4}-\d{2}-\d{2}$/.test(inicio)||!/^\d{4}-\d{2}-\d{2}$/.test(fin)||!/^\d{4}-\d{2}-\d{2}$/.test(cumple)){alert('Todas las fechas deben tener formato AAAA-MM-DD.');return;}document.getElementById('acceptPostulanteId').value=id;document.getElementById('acceptFechaInicio').value=inicio;document.getElementById('acceptFechaFin').value=fin;document.getElementById('acceptFechaCumpleanos').value=cumple;document.getElementById('acceptPostulanteForm').submit();}
 </script>

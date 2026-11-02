@@ -86,6 +86,18 @@ if (!function_exists('postulantes_build_data')) {
         ];
         $carreras = postulantes_fetch_select_options($db, 'carrera', $defaultCarreras);
         $universidades = postulantes_fetch_select_options($db, 'universidad', $defaultUniversidades);
+        $departments = [];
+        if (function_exists('db_table_exists') && db_table_exists($db, 'departamentos')) {
+            $departmentsResult = $db->query("SELECT id, name FROM departamentos WHERE name IS NOT NULL AND TRIM(name) <> '' ORDER BY name ASC");
+            if ($departmentsResult) {
+                while ($departmentRow = $departmentsResult->fetch_assoc()) {
+                    $departments[] = [
+                        'id' => (int)($departmentRow['id'] ?? 0),
+                        'name' => trim((string)($departmentRow['name'] ?? '')),
+                    ];
+                }
+            }
+        }
 
         foreach (['q', 'universidad', 'carrera', 'area', 'status'] as $key) {
             if (isset($_GET[$key]) && trim((string)$_GET[$key]) !== '') {
@@ -121,6 +133,16 @@ if (!function_exists('postulantes_build_data')) {
                 $jefeCarreraEmail = trim((string)($_POST['jefe_carrera_email'] ?? ''));
                 $horasExigidas = (int)($_POST['horas_exigidas'] ?? 0);
                 $areaPostulacion = trim((string)($_POST['area_postulacion'] ?? ''));
+                $validDepartment = false;
+                foreach ($departments as $departmentOption) {
+                    if ($departmentOption['name'] === $areaPostulacion) {
+                        $validDepartment = true;
+                        break;
+                    }
+                }
+                if ($areaPostulacion !== '' && !$validDepartment) {
+                    $errors[] = "Debes seleccionar un área válida desde Departamentos.";
+                }
                 $registerDraft = [
                     'full_name' => $fullName,
                     'email' => $email,
@@ -227,6 +249,70 @@ if (!function_exists('postulantes_build_data')) {
                 } else {
                     $errors[] = "No tienes permisos para cambiar el estado.";
                 }
+            } elseif ($formType === 'postulante_entrevista') {
+                $postulanteId = (int)($_POST['postulante_id'] ?? 0);
+                $tipo = trim((string)($_POST['tipo'] ?? ''));
+                $fecha = trim((string)($_POST['fecha'] ?? ''));
+                $observaciones = trim((string)($_POST['observaciones'] ?? ''));
+                if ($postulanteId > 0 && $tipo !== '' && $canAdd) {
+                    $stmt = $db->prepare("INSERT INTO postulante_entrevistas (postulante_id, tipo, fecha, observaciones, created_at) VALUES (?, ?, ?, ?, NOW())");
+                    $stmt->bind_param('isss', $postulanteId, $tipo, $fecha, $observaciones);
+                    $stmt->execute();
+                    $messages[] = "Entrevista registrada.";
+                } elseif (!$canAdd) {
+                    $errors[] = "No tienes permisos para registrar entrevistas.";
+                }
+            } elseif ($formType === 'postulante_documento') {
+                $postulanteId = (int)($_POST['postulante_id'] ?? 0);
+                $titulo = trim((string)($_POST['titulo'] ?? ''));
+                $tipo = trim((string)($_POST['tipo'] ?? ''));
+                $ruta = trim((string)($_POST['ruta'] ?? ''));
+                if ($postulanteId > 0 && $titulo !== '' && $canAdd) {
+                    $stmt = $db->prepare("INSERT INTO documentos (target_type, target_id, titulo, tipo, ruta, created_at) VALUES ('postulante', ?, ?, ?, ?, NOW())");
+                    $stmt->bind_param('isss', $postulanteId, $titulo, $tipo, $ruta);
+                    $stmt->execute();
+                    $messages[] = "Documento asociado.";
+                } elseif (!$canAdd) {
+                    $errors[] = "No tienes permisos para agregar documentos.";
+                }
+            } elseif ($formType === 'postulante_observacion') {
+                $postulanteId = (int)($_POST['postulante_id'] ?? 0);
+                $detalle = trim((string)($_POST['detalle'] ?? ''));
+                if ($postulanteId > 0 && $detalle !== '' && $canAdd) {
+                    $stmt = $db->prepare("INSERT INTO observaciones (target_type, target_id, detalle, created_at) VALUES ('postulante', ?, ?, NOW())");
+                    $stmt->bind_param('is', $postulanteId, $detalle);
+                    $stmt->execute();
+                    $messages[] = "Observacion registrada.";
+                } elseif (!$canAdd) {
+                    $errors[] = "No tienes permisos para agregar observaciones.";
+                }
+            } elseif ($formType === 'postulante_delete') {
+                $postulanteId = (int)($_POST['postulante_id'] ?? 0);
+                $confirmDelete = trim((string)($_POST['confirm_delete'] ?? ''));
+                if ($postulanteId > 0 && $confirmDelete === 'si' && $canDelete) {
+                    $deleteStmt = $db->prepare("DELETE FROM postulantes WHERE id = ?");
+                    $deleteStmt->bind_param('i', $postulanteId);
+                    if ($deleteStmt->execute()) {
+                        $messages[] = "Postulante eliminado correctamente.";
+                        $viewId = 0;
+                    } else {
+                        $errors[] = "Error al eliminar el postulante.";
+                    }
+                } elseif ($postulanteId > 0 && $confirmDelete === 'si' && $canAdd) {
+                    $detail = "Solicitud de eliminacion postulante #$postulanteId";
+                    if (function_exists('create_change_request')) {
+                        create_change_request($db, $userId, 'postulantes', 'eliminacion', $detail);
+                        $messages[] = "Solicitud enviada al Encargado de RRHH.";
+                    } else {
+                        $errors[] = "No se pudo registrar la solicitud.";
+                    }
+                }
+            } elseif ($formType === 'postulante_update') {
+                $postulanteId=(int)($_POST['postulante_id']??0);$fullName=trim((string)($_POST['full_name']??''));$email=trim((string)($_POST['email']??''));$telefono=trim((string)($_POST['telefono']??''));$carrera=trim((string)($_POST['carrera']??''));$universidad=trim((string)($_POST['universidad']??''));$area=trim((string)($_POST['area_postulacion']??''));$horas=max(0,(int)($_POST['horas_exigidas']??0));
+                if($postulanteId<=0||$fullName===''){$errors[]="Datos del postulante incompletos.";}elseif(!$canModify){$errors[]="No tienes permisos para editar postulantes.";}else{$stmt=$db->prepare("UPDATE postulantes SET full_name=?,email=?,telefono=?,carrera=?,universidad=?,area_postulacion=?,horas_exigidas=?,status_updated_at=NOW() WHERE id=? LIMIT 1");$stmt->bind_param('ssssssii', $fullName, $email, $telefono, $carrera, $universidad, $area, $horas, $postulanteId);if($stmt->execute())$messages[]="Postulante actualizado correctamente.";else $errors[]="No se pudo actualizar el postulante.";}
+            } elseif ($formType === 'postulante_accept') {
+                $postulanteId=(int)($_POST['postulante_id']??0);$fechaInicio=trim((string)($_POST['fecha_inicio']??''));$fechaFin=trim((string)($_POST['fecha_fin']??''));$fechaCumpleanos=trim((string)($_POST['fecha_cumpleanos']??''));
+                if($postulanteId<=0||$fechaInicio===''||$fechaFin===''||$fechaCumpleanos===''){$errors[]="Para aceptar debes indicar fecha de inicio, término y cumpleaños.";}elseif(!$canModify){$errors[]="No tienes permisos para aceptar postulantes.";}else{$s=$db->prepare("SELECT * FROM postulantes WHERE id=? LIMIT 1");$s->bind_param('i',$postulanteId);$s->execute();$info=$s->get_result()->fetch_assoc();if(!$info){$errors[]="Postulante no encontrado.";}else{$cols=db_table_columns($db,'practicantes');$departmentId=0;if(!empty($info['area_postulacion'])){$d=$db->prepare("SELECT id FROM departamentos WHERE LOWER(name)=LOWER(?) LIMIT 1");$d->bind_param('s',$info['area_postulacion']);$d->execute();$dr=$d->get_result()->fetch_assoc();if($dr)$departmentId=(int)$dr['id'];}$row=['postulante_id'=>$postulanteId,'full_name'=>$info['full_name'],'email'=>$info['email'],'telefono'=>$info['telefono'],'fecha_inicio'=>$fechaInicio,'fecha_fin'=>$fechaFin,'fecha_cumpleanos'=>$fechaCumpleanos,'status'=>'active','horas_exigidas'=>(int)($info['horas_exigidas']??0),'carrera'=>$info['carrera'],'universidad'=>$info['universidad']];if($departmentId>0)$row['department_id']=$departmentId;$exists=$db->prepare("SELECT id FROM practicantes WHERE postulante_id=? LIMIT 1");$exists->bind_param('i',$postulanteId);$exists->execute();$existing=$exists->get_result()->fetch_assoc();if($existing){$upd=$db->prepare("UPDATE practicantes SET fecha_inicio=?,fecha_fin=?,fecha_cumpleanos=?,status='active',department_id=? WHERE postulante_id=? LIMIT 1");$upd->bind_param('sssii',$fechaInicio,$fechaFin,$fechaCumpleanos,$departmentId,$postulanteId);$ok=$upd->execute();}else{$ok=function_exists('practicantes_insert_row')?practicantes_insert_row($db,$row,$cols):false;}if($ok){$u=$db->prepare("UPDATE postulantes SET status='seleccionado',status_updated_at=NOW() WHERE id=?");$u->bind_param('i',$postulanteId);$u->execute();$h=$db->prepare("INSERT INTO postulante_historial(postulante_id,estado,nota,created_at) VALUES(?,'seleccionado','Aceptado como practicante activo',NOW())");$h->bind_param('i',$postulanteId);$h->execute();$messages[]="Postulante aceptado y registrado como practicante activo.";}else{$errors[]="No se pudo crear el practicante.";}}}
             } elseif ($formType === 'postulante_entrevista') {
                 $postulanteId = (int)($_POST['postulante_id'] ?? 0);
                 $tipo = trim((string)($_POST['tipo'] ?? ''));
@@ -393,6 +479,7 @@ if (!function_exists('postulantes_build_data')) {
             'registerDraft' => $registerDraft,
             'carreras' => $carreras,
             'universidades' => $universidades,
+            'departments' => $departments,
         ];
     }
 }

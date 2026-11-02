@@ -158,7 +158,8 @@ $canViewTareas = $canViewTareas ?? !empty($dashboardData['tasksVisible']);
     </style>
 
     <div class="dashboard-grid">
-      <?php if (!empty($canViewTareas)): ?>
+      <?php $calendarPracticantes = $dashboardData['calendarPracticantes'] ?? []; ?>
+      <?php if (!empty($canViewTareas) || !empty($calendarPracticantes)): ?>
         <?php
         $calTargetRoute = 'dashboard';
         $calCollapsible = true;

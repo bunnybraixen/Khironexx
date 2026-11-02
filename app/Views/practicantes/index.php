@@ -213,6 +213,24 @@ if ($rawEditCumple !== '') {
     width: 100%;
     min-width: 900px;
   }
+
+  .practicantes-search-table {
+    min-width: 720px;
+  }
+
+  .practicantes-search-table th:last-child,
+  .practicantes-search-table td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background: var(--app-card, #162033);
+    min-width: 220px;
+    box-shadow: -8px 0 12px rgba(0, 0, 0, .08);
+  }
+
+  .practicantes-search-table th:last-child {
+    z-index: 3;
+  }
 </style>
 <div class="stack">
   <div class="card">
@@ -464,66 +482,70 @@ if ($rawEditCumple !== '') {
       </form>
 
       <div class="table-wrapper">
-        <table>
+        <table class="practicantes-search-table">
           <thead>
             <tr>
               <th>ID</th>
-            <th>Foto</th>
-            <th>Nombre</th>
-            <th>Area</th>
-            <th>Correo</th>
-            <th>Correo institucional</th>
-            <th>Inicio</th>
-            <th>Horas exigidas</th>
-            <th>Horas cumplidas</th>
-            <th>Pendientes</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php if ($rows): while ($row = $rows->fetch_assoc()): ?>
-              <?php
-              $horasExigidas = (int)($row['horas_exigidas'] ?? 0);
-              $horasCumplidas = (int)($row['horas_cumplidas'] ?? 0);
-              $pendientes = $horasExigidas > 0 ? max(0, $horasExigidas - $horasCumplidas) : 0;
-              ?>
-              <tr>
-                <td><?php echo (int)$row['id']; ?></td>
-                <td><?php
-                    $thumb = '';
-                    if (!empty($row['photo'])) {
-                      $url = asset($row['photo']);
-                      $thumb = '<img src="' . htmlspecialchars($url) . '" alt="Foto" style="max-height:50px;max-width:50px;">';
-                    }
-                    echo $thumb;
-                    ?></td>
-                <td><a class="link" href="<?php echo htmlspecialchars(route_url('practicantes') . '&ui_module=buscar&view=' . (int)$row['id']); ?>"><?php echo htmlspecialchars($row['full_name']); ?></a></td>
-                <td><?php echo htmlspecialchars($row['department'] ?? ''); ?></td>
-                <td><?php echo htmlspecialchars($row['email'] ?? ''); ?></td>
-                <td><?php echo htmlspecialchars($row['correo_institucional'] ?? ''); ?></td>
-                <td><?php echo htmlspecialchars($row['fecha_inicio'] ?? ''); ?></td>
-                <td><?php echo htmlspecialchars((string)$horasExigidas); ?></td>
-                <td><?php echo htmlspecialchars((string)$horasCumplidas); ?></td>
-                <td><?php echo htmlspecialchars((string)$pendientes); ?></td>
-                <td><?php echo htmlspecialchars($row['status']); ?></td>
-                <td>
-                  <a class="btn warning" href="<?php echo htmlspecialchars(route_url('practicantes') . '&ui_module=editar&edit=' . (int)$row['id']); ?>">Editar</a>
-                  <?php if ($canAdmin): ?>
-                    <form method="post" style="display:inline-block;" onsubmit="return confirm('Eliminar practicante <?php echo htmlspecialchars($row['full_name']); ?>? Esta accion eliminara el practicante definitivamente.');">
-                      <input type="hidden" name="form_type" value="practicante_delete">
+              <th>Nombre</th>
+              <th>Área</th>
+              <th>Correo</th>
+              <th>Inicio</th>
+              <th>Término</th>
+              <th>Horas exigidas</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php
+            $rowsToRender = [];
+            if (is_array($rows)) {
+              $rowsToRender = $rows;
+            } elseif ($rows instanceof mysqli_result) {
+              while ($rowData = $rows->fetch_assoc()) {
+                $rowsToRender[] = $rowData;
+              }
+            }
+            foreach ($rowsToRender as $row):
+                ?>
+                <?php
+                $horasExigidas = (int)($row['horas_exigidas'] ?? 0);
+                $horasCumplidas = (int)($row['horas_cumplidas'] ?? 0);
+                $pendientes = $horasExigidas > 0 ? max(0, $horasExigidas - $horasCumplidas) : 0;
+                $isActive = ($row['status'] ?? 'active') !== 'inactive';
+                ?>
+                <tr>
+                  <td><?php echo (int)$row['id']; ?></td>
+                  <td><a class="link" href="<?php echo htmlspecialchars(route_url('practicantes') . '&ui_module=buscar&view=' . (int)$row['id']); ?>"><?php echo htmlspecialchars($row['full_name']); ?></a></td>
+                  <td><?php echo htmlspecialchars($row['department'] ?? ''); ?></td>
+                  <td><?php echo htmlspecialchars($row['email'] ?? ''); ?></td>
+                  <td><?php echo htmlspecialchars($row['fecha_inicio'] ?? ''); ?></td>
+                  <td><?php echo htmlspecialchars($row['fecha_fin'] ?? ''); ?></td>
+                  <td><?php echo (int)$horasExigidas; ?></td>
+                  <td><?php echo $isActive ? 'Activo' : 'Inactivo'; ?></td>
+                  <td>
+                    <a class="btn warning" href="<?php echo htmlspecialchars(route_url('practicantes') . '&ui_module=editar&edit=' . (int)$row['id']); ?>">Editar</a>
+                    <?php if ($canAdmin): ?>
+                      <form method="post" style="display:inline-block;" onsubmit="return confirm('Eliminar practicante <?php echo htmlspecialchars($row['full_name']); ?>? Esta accion eliminara el practicante definitivamente.');">
+                        <input type="hidden" name="form_type" value="practicante_delete">
+                        <input type="hidden" name="practicante_id" value="<?php echo (int)$row['id']; ?>">
+                        <input type="hidden" name="confirm_delete" value="si">
+                        <input type="hidden" name="ui_module" value="buscar">
+                        <button class="btn danger" type="submit">Eliminar</button>
+                      </form>
+                    <?php endif; ?>
+                    <form method="post" style="display:inline-block;" onsubmit="return confirm('¿Cambiar el estado de este practicante?');">
+                      <input type="hidden" name="form_type" value="practicante_status">
                       <input type="hidden" name="practicante_id" value="<?php echo (int)$row['id']; ?>">
-                      <input type="hidden" name="confirm_delete" value="si">
+                      <input type="hidden" name="status" value="<?php echo (($row['status'] ?? 'active') === 'inactive') ? 'active' : 'inactive'; ?>">
                       <input type="hidden" name="ui_module" value="buscar">
-                      <button class="btn danger" type="submit">Eliminar</button>
+                      <button class="btn secondary" type="submit"><?php echo (($row['status'] ?? 'active') === 'inactive') ? 'Activar' : 'Desactivar'; ?></button>
                     </form>
-                  <?php endif; ?>
-                </td>
-              </tr>
-          <?php endwhile;
-          endif; ?>
-        </tbody>
-      </table>
+                  </td>
+                </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
       </div>
     </section>
 
