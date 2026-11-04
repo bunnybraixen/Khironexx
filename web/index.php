@@ -385,6 +385,12 @@ if ($route === 'tareas' && $user && $canViewTareas) {
 }
 
 $calendarTasks = [];
+$calendarPracticantes = [];
+if (in_array($route, ['calendario', 'dashboard'], true) && $user) {
+  if (function_exists('practicantes_fetch_calendar_events')) {
+    $calendarPracticantes = practicantes_fetch_calendar_events($db);
+  }
+}
 $calendarMonth = trim((string)($_GET['mes'] ?? date('Y-m')));
 $calendarMonthDate = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $calendarMonth)
   ? DateTimeImmutable::createFromFormat('!Y-m', $calendarMonth)
@@ -507,6 +513,7 @@ if (is_file($appJsVersionPath)) {
       $dashboardData['tasks'] = $dashboardTasks;
       $dashboardData['tasksVisible'] = (bool)($user && $canViewTareas);
       $dashboardData['calendarTasks'] = $calendarTasks;
+      $dashboardData['calendarPracticantes'] = $calendarPracticantes;
       $dashboardData['calendarMonth'] = $calendarMonth;
       $dashboardData['calendarMonthDate'] = $calendarMonthDate;
       ?>

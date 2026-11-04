@@ -957,6 +957,12 @@ if (!function_exists('practicantes_build_data')) {
                 }
             }
 
+            if ($formType === 'practicante_status') {
+                $activeModule = 'buscar';
+            } elseif ($formType === 'practicante_delete') {
+                $activeModule = 'buscar';
+            }
+
             if ($formType === 'practicante_evaluacion') {
                 $practicanteId = (int)($_POST['practicante_id'] ?? 0);
                 $competencia = trim((string)($_POST['competencia'] ?? ''));
@@ -1123,7 +1129,7 @@ if (!function_exists('practicantes_build_data')) {
         if ($filters) {
             $sql .= " WHERE " . implode(" AND ", $filters);
         }
-        $sql .= " GROUP BY e.id ORDER BY " . $sortSql . " LIMIT 200";
+        $sql .= " GROUP BY e.id ORDER BY CASE WHEN e.status = 'active' THEN 0 ELSE 1 END, " . $sortSql . " LIMIT 200";
         $stmt = $db->prepare($sql);
         $rows = null;
         if (!$stmt) {
@@ -1242,5 +1248,26 @@ if (!function_exists('practicantes_build_data')) {
             'evaluacionesAvailable' => $evaluacionesAvailable,
             'evaluacionesCsrfToken' => $evaluacionesCsrfToken,
         ];
+    }
+}
+
+if (!function_exists('practicantes_fetch_calendar_events')) {
+    function practicantes_fetch_calendar_events(mysqli $db)
+    {
+        $events = [];
+        if (!function_exists('db_table_exists') || !db_table_exists($db, 'practicantes')) return $events;
+        $cols = db_table_columns($db, 'practicantes');
+        if (!in_array('full_name', $cols, true)) return $events;
+        $selects = ['id', 'full_name'];
+        foreach (['fecha_inicio', 'fecha_fin', 'status'] as $col) if (in_array($col, $cols, true)) $selects[] = $col;
+        $query = $db->query("SELECT " . implode(', ', $selects) . " FROM practicantes");
+        if (!$query) return $events;
+        while ($row = $query->fetch_assoc()) {
+            $name = trim((string)($row['full_name'] ?? ''));
+            $status = trim((string)($row['status'] ?? 'active'));
+            if (!empty($row['fecha_inicio']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$row['fecha_inicio'])) $events[] = ['type'=>'practicante_inicio','practicante_id'=>(int)$row['id'],'full_name'=>$name,'fecha'=>(string)$row['fecha_inicio'],'status'=>$status,'titulo'=>'Inicio práctica: '.$name];
+            if (!empty($row['fecha_fin']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$row['fecha_fin'])) $events[] = ['type'=>'practicante_fin','practicante_id'=>(int)$row['id'],'full_name'=>$name,'fecha'=>(string)$row['fecha_fin'],'status'=>$status,'titulo'=>'Término práctica: '.$name];
+        }
+        return $events;
     }
 }
