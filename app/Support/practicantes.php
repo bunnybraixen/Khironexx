@@ -239,6 +239,16 @@ if (!function_exists('practicantes_insert_row')) {
     }
 }
 
+if (!function_exists('practicantes_evaluacion_csrf_token')) {
+    function practicantes_evaluacion_csrf_token()
+    {
+        if (empty($_SESSION['practicantes_evaluacion_csrf'])) {
+            $_SESSION['practicantes_evaluacion_csrf'] = bin2hex(random_bytes(32));
+        }
+        return (string)$_SESSION['practicantes_evaluacion_csrf'];
+    }
+}
+
 if (!function_exists('practicantes_build_data')) {
     function practicantes_build_data(mysqli $db, array $permissions)
     {
@@ -256,6 +266,9 @@ if (!function_exists('practicantes_build_data')) {
         $userId = $permissions['userId'] ?? null;
         $horasPorDia = 8;
         $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $evaluaciones = [];
+        $evaluacionesAvailable = db_table_exists($db, 'practicante_evaluaciones');
+        $evaluacionesCsrfToken = practicantes_evaluacion_csrf_token();
 
         $practicantesColumns = db_table_columns($db, 'practicantes');
         if (!$practicantesColumns) {
@@ -291,6 +304,9 @@ if (!function_exists('practicantes_build_data')) {
                 'editDraft' => $editDraft,
                 'activeModule' => 'registrar',
                 'horasPorDia' => $horasPorDia,
+                'evaluaciones' => $evaluaciones,
+                'evaluacionesAvailable' => $evaluacionesAvailable,
+                'evaluacionesCsrfToken' => $evaluacionesCsrfToken,
             ];
         }
 
@@ -340,6 +356,8 @@ if (!function_exists('practicantes_build_data')) {
             } elseif ($formType === 'practicante_update') {
                 $activeModule = 'editar';
             } elseif ($formType === 'practicante_delete') {
+                $activeModule = 'buscar';
+            } elseif ($formType === 'practicante_evaluacion') {
                 $activeModule = 'buscar';
             }
 
@@ -939,6 +957,55 @@ if (!function_exists('practicantes_build_data')) {
                 }
             }
 
+            if ($formType === 'practicante_evaluacion') {
+                $practicanteId = (int)($_POST['practicante_id'] ?? 0);
+                $competencia = trim((string)($_POST['competencia'] ?? ''));
+                $nivel = (int)($_POST['nivel'] ?? 0);
+                $comentario = trim((string)($_POST['comentario'] ?? ''));
+                $referenciaEvidencia = trim((string)($_POST['referencia_evidencia'] ?? ''));
+                $fecha = trim((string)($_POST['fecha'] ?? ''));
+                $csrfToken = (string)($_POST['evaluacion_csrf_token'] ?? '');
+                $competenciaLength = function_exists('mb_strlen') ? mb_strlen($competencia) : strlen($competencia);
+                $comentarioLength = function_exists('mb_strlen') ? mb_strlen($comentario) : strlen($comentario);
+
+                if (!$canAdd) {
+                    $errors[] = 'No tienes permisos para registrar evaluaciones.';
+                } elseif (!hash_equals(practicantes_evaluacion_csrf_token(), $csrfToken)) {
+                    $errors[] = 'La sesión del formulario venció. Recarga la página e inténtalo otra vez.';
+                } elseif (!$evaluacionesAvailable) {
+                    $errors[] = 'Falta crear la tabla de evaluaciones. Importa sql/evaluaciones_practicantes_migration.sql.';
+                } elseif ($practicanteId <= 0 || $competencia === '' || $competenciaLength > 120 || !in_array($nivel, [1, 2, 3, 4], true) || $comentarioLength > 2000 || strlen($referenciaEvidencia) > 255 || !practicantes_is_valid_date($fecha)) {
+                    $errors[] = 'Revisa la competencia, el nivel, la fecha y los límites de texto del formulario.';
+                } else {
+                    $practicanteCheck = $db->prepare('SELECT id FROM practicantes WHERE id = ? LIMIT 1');
+                    if (!$practicanteCheck) {
+                        $errors[] = 'No se pudo validar el practicante seleccionado.';
+                    } else {
+                        $practicanteCheck->bind_param('i', $practicanteId);
+                        $exists = $practicanteCheck->execute() && (bool)$practicanteCheck->get_result()->fetch_assoc();
+                        $practicanteCheck->close();
+                        if (!$exists) {
+                            $errors[] = 'El practicante seleccionado no existe.';
+                        } else {
+                            $stmt = $db->prepare('INSERT INTO practicante_evaluaciones (practicante_id, evaluador_id, competencia, nivel, comentario, referencia_evidencia, fecha, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())');
+                            if (!$stmt) {
+                                $errors[] = 'No se pudo preparar el registro de la evaluación.';
+                            } else {
+                                $evaluadorId = (int)$userId;
+                                $stmt->bind_param('iisisss', $practicanteId, $evaluadorId, $competencia, $nivel, $comentario, $referenciaEvidencia, $fecha);
+                                if ($stmt->execute()) {
+                                    $messages[] = 'Evaluación por competencias registrada.';
+                                    $viewId = $practicanteId;
+                                } else {
+                                    $errors[] = 'No se pudo guardar la evaluación.';
+                                }
+                                $stmt->close();
+                            }
+                        }
+                    }
+                }
+            }
+
             if ($formType === 'practicante_delete') {
                 $practicanteId = (int)($_POST['practicante_id'] ?? 0);
                 $confirmDelete = trim((string)($_POST['confirm_delete'] ?? ''));
@@ -1081,6 +1148,7 @@ if (!function_exists('practicantes_build_data')) {
         $horasList = [];
         $docs = [];
         $obs = [];
+        $evaluaciones = [];
         $totalHoras = 0;
         $horasPendientes = 0;
         $targetId = $viewId > 0 ? $viewId : $editId;
@@ -1113,6 +1181,24 @@ if (!function_exists('practicantes_build_data')) {
                 if ($obsRes) {
                     while ($row = $obsRes->fetch_assoc()) {
                         $obs[] = $row;
+                    }
+                }
+
+                if ($evaluacionesAvailable) {
+                    $evalStmt = $db->prepare("SELECT pe.id, pe.competencia, pe.nivel, pe.comentario, pe.referencia_evidencia, pe.fecha, pe.created_at, COALESCE(u.full_name, 'Usuario eliminado') AS evaluador
+                        FROM practicante_evaluaciones pe
+                        LEFT JOIN usuarios u ON u.id = pe.evaluador_id
+                        WHERE pe.practicante_id = ?
+                        ORDER BY pe.fecha DESC, pe.id DESC");
+                    if ($evalStmt) {
+                        $evalStmt->bind_param('i', $targetId);
+                        if ($evalStmt->execute()) {
+                            $evalResult = $evalStmt->get_result();
+                            while ($row = $evalResult->fetch_assoc()) {
+                                $evaluaciones[] = $row;
+                            }
+                        }
+                        $evalStmt->close();
                     }
                 }
 
@@ -1152,6 +1238,9 @@ if (!function_exists('practicantes_build_data')) {
             'editDraft' => $editDraft,
             'activeModule' => $activeModule,
             'horasPorDia' => $horasPorDia,
+            'evaluaciones' => $evaluaciones,
+            'evaluacionesAvailable' => $evaluacionesAvailable,
+            'evaluacionesCsrfToken' => $evaluacionesCsrfToken,
         ];
     }
 }

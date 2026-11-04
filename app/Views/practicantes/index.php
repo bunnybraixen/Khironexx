@@ -18,6 +18,10 @@ $viewPract = $practicantesData['viewPract'] ?? null;
 $horasList = $practicantesData['horasList'] ?? [];
 $docs = $practicantesData['docs'] ?? [];
 $obs = $practicantesData['obs'] ?? [];
+$evaluaciones = $practicantesData['evaluaciones'] ?? [];
+$evaluacionesAvailable = (bool)($practicantesData['evaluacionesAvailable'] ?? false);
+$evaluacionesCsrfToken = (string)($practicantesData['evaluacionesCsrfToken'] ?? '');
+$evaluationLevelLabels = [1 => 'Inicial', 2 => 'En desarrollo', 3 => 'Competente', 4 => 'Destacado'];
 $totalHoras = (int)($practicantesData['totalHoras'] ?? 0);
 $horasPendientes = (int)($practicantesData['horasPendientes'] ?? 0);
 $canAdd = $practicantesData['canAdd'] ?? false;
@@ -770,6 +774,89 @@ if ($rawEditCumple !== '') {
           </ul>
         <?php else: ?>
           <p class="subtle">Sin documentos asociados.</p>
+        <?php endif; ?>
+      </div>
+
+      <div class="card">
+        <h4 class="section-title">Evaluación por competencias</h4>
+        <?php if (!$evaluacionesAvailable): ?>
+          <div class="notice">Para habilitar esta sección, importa <code>sql/evaluaciones_practicantes_migration.sql</code> en la base de datos de Khironexx.</div>
+        <?php else: ?>
+          <?php if ($canAdd): ?>
+            <form method="post" class="stack compact">
+              <input type="hidden" name="form_type" value="practicante_evaluacion">
+              <input type="hidden" name="practicante_id" value="<?php echo (int)$viewPract['id']; ?>">
+              <input type="hidden" name="evaluacion_csrf_token" value="<?php echo htmlspecialchars($evaluacionesCsrfToken, ENT_QUOTES); ?>">
+              <input type="hidden" name="ui_module" value="buscar">
+              <div class="field">
+                <label>Competencia</label>
+                <input name="competencia" maxlength="120" placeholder="Ej.: Comunicación efectiva" required>
+              </div>
+              <div class="grid two">
+                <div class="field">
+                  <label>Nivel alcanzado</label>
+                  <select name="nivel" required>
+                    <option value="">Selecciona un nivel</option>
+                    <?php foreach ($evaluationLevelLabels as $level => $label): ?>
+                      <option value="<?php echo (int)$level; ?>"><?php echo htmlspecialchars($label); ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Fecha de evaluación</label>
+                  <input type="date" name="fecha" value="<?php echo htmlspecialchars(date('Y-m-d')); ?>" required>
+                </div>
+              </div>
+              <div class="field">
+                <label>Comentario</label>
+                <textarea name="comentario" rows="3" maxlength="2000" placeholder="Describe brevemente el desempeño observado."></textarea>
+              </div>
+              <div class="field">
+                <label>Referencia de evidencia (opcional)</label>
+                <input name="referencia_evidencia" maxlength="255" placeholder="Nombre de archivo, actividad o evidencia relacionada">
+              </div>
+              <button class="btn" type="submit">Registrar evaluación</button>
+            </form>
+          <?php else: ?>
+            <div class="notice">Solo lectura: no tienes permisos para registrar evaluaciones.</div>
+          <?php endif; ?>
+
+          <?php if ($evaluaciones): ?>
+            <h5>Historial de evaluaciones (<?php echo count($evaluaciones); ?>)</h5>
+            <div class="table-wrapper">
+              <table class="table-compact">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Competencia</th>
+                    <th>Nivel</th>
+                    <th>Evaluador</th>
+                    <th>Comentario y evidencia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($evaluaciones as $evaluacion): ?>
+                    <tr>
+                      <td><?php echo htmlspecialchars($evaluacion['fecha'] ?? ''); ?></td>
+                      <td><?php echo htmlspecialchars($evaluacion['competencia'] ?? ''); ?></td>
+                      <td><?php echo htmlspecialchars($evaluationLevelLabels[(int)($evaluacion['nivel'] ?? 0)] ?? 'Sin nivel'); ?></td>
+                      <td><?php echo htmlspecialchars($evaluacion['evaluador'] ?? ''); ?></td>
+                      <td>
+                        <?php if (!empty($evaluacion['comentario'])): ?>
+                          <div><?php echo nl2br(htmlspecialchars($evaluacion['comentario'])); ?></div>
+                        <?php endif; ?>
+                        <?php if (!empty($evaluacion['referencia_evidencia'])): ?>
+                          <small class="subtle">Evidencia: <?php echo htmlspecialchars($evaluacion['referencia_evidencia']); ?></small>
+                        <?php endif; ?>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          <?php else: ?>
+            <p class="subtle">Todavía no hay evaluaciones registradas para este practicante.</p>
+          <?php endif; ?>
         <?php endif; ?>
       </div>
 
