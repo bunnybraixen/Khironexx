@@ -9,13 +9,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  document.querySelectorAll('[data-pending-form]').forEach(function (form) {
+  document.querySelectorAll('form[data-confirm]').forEach(function (form) {
     form.addEventListener('submit', function (event) {
-      event.preventDefault();
-      var notice = form.querySelector('[data-form-notice]');
-      if (notice) {
-        notice.hidden = false;
-        notice.textContent = 'El practicante y el responsable se seleccionan desde las tablas existentes. El guardado estará disponible cuando se defina la tabla de procesos de onboarding.';
+      if (!window.confirm(form.getAttribute('data-confirm'))) {
+        event.preventDefault();
       }
     });
   });

@@ -152,6 +152,8 @@ $e = function ($value) {
                 $tareaIsOwner = (int)$tarea['creado_por'] === (int)($user['id'] ?? 0);
                 $tareaIsAssignee = (int)$tarea['asignado_a'] === (int)($user['id'] ?? 0);
                 $tareaPending = (($tarea['status'] ?? '') === 'pendiente');
+                $tareaBlocked = (($tarea['status'] ?? '') === 'bloqueada');
+                $tareaStatus = (string)($tarea['status'] ?? 'pendiente');
                 ?>
                 <tr>
                   <td>
@@ -165,8 +167,8 @@ $e = function ($value) {
                   <td><?php echo $e($tareaPriorityLabels[$tarea['prioridad'] ?? ''] ?? ucfirst((string)($tarea['prioridad'] ?? ''))); ?></td>
                   <td><?php echo !empty($tarea['fecha_limite']) ? $e($tarea['fecha_limite']) : '<span class="subtle">Sin fecha</span>'; ?></td>
                   <td>
-                    <span class="status-pill"><?php echo $tareaPending ? $e($tareaStatusLabels['pendiente']) : $e($tareaStatusLabels['completada']); ?></span>
-                    <?php if (!$tareaPending && !empty($tarea['completed_at'])): ?>
+                    <span class="status-pill tarea-status-<?php echo $e($tareaStatus); ?>"><?php echo $e($tareaStatusLabels[$tareaStatus] ?? ucfirst($tareaStatus)); ?></span>
+                    <?php if ($tareaStatus === 'completada' && !empty($tarea['completed_at'])): ?>
                       <br><span class="subtle"><?php echo $e($tarea['completed_at']); ?></span>
                     <?php endif; ?>
                   </td>
@@ -179,7 +181,22 @@ $e = function ($value) {
                         <input type="hidden" name="tarea_action" value="complete">
                         <button class="btn secondary" type="submit">Marcar como lista</button>
                       </form>
-                    <?php elseif (!$tareaPending && ($tareaIsOwner || $isAdmin)): ?>
+                    <?php endif; ?>
+                    <?php if ($tareaPending && ($tareaIsOwner || $isAdmin)): ?>
+                      <form method="post" action="<?php echo $e(route_url('tareas')); ?>" class="stack compact">
+                        <input type="hidden" name="csrf_token" value="<?php echo $e(tareas_csrf_token()); ?>">
+                        <input type="hidden" name="tarea_id" value="<?php echo $tareaId; ?>">
+                        <input type="hidden" name="tarea_action" value="block">
+                        <button class="btn secondary" type="submit">Bloquear</button>
+                      </form>
+                    <?php elseif ($tareaBlocked && ($tareaIsOwner || $isAdmin)): ?>
+                      <form method="post" action="<?php echo $e(route_url('tareas')); ?>" class="stack compact">
+                        <input type="hidden" name="csrf_token" value="<?php echo $e(tareas_csrf_token()); ?>">
+                        <input type="hidden" name="tarea_id" value="<?php echo $tareaId; ?>">
+                        <input type="hidden" name="tarea_action" value="unblock">
+                        <button class="btn secondary" type="submit">Desbloquear</button>
+                      </form>
+                    <?php elseif ($tareaStatus === 'completada' && ($tareaIsOwner || $isAdmin)): ?>
                       <form method="post" action="<?php echo $e(route_url('tareas')); ?>" class="stack compact">
                         <input type="hidden" name="csrf_token" value="<?php echo $e(tareas_csrf_token()); ?>">
                         <input type="hidden" name="tarea_id" value="<?php echo $tareaId; ?>">

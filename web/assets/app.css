@@ -254,6 +254,21 @@ header {
   color: #0f172a;
 }
 
+.status-pill.tarea-status-bloqueada {
+  color: #8c4238;
+  background: #fee9e4;
+}
+
+.status-pill.tarea-status-pendiente {
+  color: #765f22;
+  background: #f8f0d7;
+}
+
+.status-pill.tarea-status-completada {
+  color: #35654d;
+  background: #e4f3e9;
+}
+
 .status-registrado {
   background: #e0f2fe;
   color: #0c4a6e;

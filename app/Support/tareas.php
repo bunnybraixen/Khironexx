@@ -15,6 +15,7 @@ if (!function_exists('tareas_status_labels')) {
     {
         return [
             'pendiente' => 'Pendiente',
+            'bloqueada' => 'Bloqueada',
             'completada' => 'Lista',
         ];
     }
@@ -28,6 +29,45 @@ if (!function_exists('tareas_priority_labels')) {
             'media' => 'Media',
             'alta' => 'Alta',
         ];
+    }
+}
+
+if (!function_exists('tareas_onboarding_log_task')) {
+    function tareas_onboarding_log_task(mysqli $db, $taskId, $userId, $action, $title)
+    {
+        if (!db_table_exists($db, 'onboarding_phase_tasks') || !db_table_exists($db, 'onboarding_history')) {
+            return;
+        }
+        $processIds = [];
+        $stmt = $db->prepare('SELECT DISTINCT ph.process_id FROM onboarding_phase_tasks l INNER JOIN onboarding_phases ph ON ph.id = l.phase_id WHERE l.task_id = ?');
+        if (!$stmt) {
+            return;
+        }
+        $taskId = (int)$taskId;
+        $stmt->bind_param('i', $taskId);
+        if ($stmt->execute()) {
+            $result = $stmt->get_result();
+            while ($row = $result->fetch_assoc()) {
+                $processIds[] = (int)$row['process_id'];
+            }
+        }
+        $stmt->close();
+        if (!$processIds) {
+            return;
+        }
+        $label = function_exists('mb_substr') ? mb_substr((string)$title, 0, 300) : substr((string)$title, 0, 300);
+        $summary = 'Tarea "' . $label . '": ' . (string)$action . '.';
+        $historyStmt = $db->prepare("INSERT INTO onboarding_history (process_id, user_id, action, summary, after_data) VALUES (?, ?, 'task_updated', ?, ?)");
+        if (!$historyStmt) {
+            return;
+        }
+        $userId = (int)$userId;
+        $after = json_encode(['task_id' => $taskId, 'status' => (string)$action], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        foreach ($processIds as $processId) {
+            $historyStmt->bind_param('iiss', $processId, $userId, $summary, $after);
+            $historyStmt->execute();
+        }
+        $historyStmt->close();
     }
 }
 
@@ -216,7 +256,10 @@ if (!function_exists('tareas_handle_post')) {
             if (!$isAssignee && !$isOwner && !$isAdmin) {
                 return ['error' => 'No puedes marcar esta tarea como lista.'];
             }
-            $stmt = $db->prepare("UPDATE tareas SET status = 'completada', completed_at = NOW() WHERE id = ?");
+            if (($tarea['status'] ?? '') !== 'pendiente') {
+                return ['error' => 'Solo puedes completar una tarea pendiente.'];
+            }
+            $stmt = $db->prepare("UPDATE tareas SET status = 'completada', completed_at = NOW() WHERE id = ? AND status = 'pendiente'");
             if (!$stmt) {
                 return ['error' => 'No se pudo preparar la actualización de la tarea.'];
             }
@@ -226,14 +269,60 @@ if (!function_exists('tareas_handle_post')) {
                 return ['error' => 'No se pudo actualizar la tarea.'];
             }
             $stmt->close();
+            tareas_onboarding_log_task($db, $tareaId, $currentUserId, 'completada', $tarea['titulo']);
             return ['success' => 'Tarea marcada como lista. Quedó archivada.'];
+        }
+
+        if ($action === 'block') {
+            if (!$isOwner && !$isAdmin) {
+                return ['error' => 'Solo quien asignó la tarea o administración puede bloquearla.'];
+            }
+            if (($tarea['status'] ?? '') !== 'pendiente') {
+                return ['error' => 'Solo puedes bloquear una tarea pendiente.'];
+            }
+            $stmt = $db->prepare("UPDATE tareas SET status = 'bloqueada', completed_at = NULL WHERE id = ? AND status = 'pendiente'");
+            if (!$stmt) {
+                return ['error' => 'No se pudo preparar la actualización de la tarea.'];
+            }
+            $stmt->bind_param('i', $tareaId);
+            if (!$stmt->execute()) {
+                $stmt->close();
+                return ['error' => 'No se pudo bloquear la tarea.'];
+            }
+            $stmt->close();
+            tareas_onboarding_log_task($db, $tareaId, $currentUserId, 'bloqueada', $tarea['titulo']);
+            return ['success' => 'Tarea bloqueada.'];
+        }
+
+        if ($action === 'unblock') {
+            if (!$isOwner && !$isAdmin) {
+                return ['error' => 'Solo quien asignó la tarea o administración puede desbloquearla.'];
+            }
+            if (($tarea['status'] ?? '') !== 'bloqueada') {
+                return ['error' => 'La tarea ya no está bloqueada.'];
+            }
+            $stmt = $db->prepare("UPDATE tareas SET status = 'pendiente' WHERE id = ? AND status = 'bloqueada'");
+            if (!$stmt) {
+                return ['error' => 'No se pudo preparar la actualización de la tarea.'];
+            }
+            $stmt->bind_param('i', $tareaId);
+            if (!$stmt->execute()) {
+                $stmt->close();
+                return ['error' => 'No se pudo desbloquear la tarea.'];
+            }
+            $stmt->close();
+            tareas_onboarding_log_task($db, $tareaId, $currentUserId, 'pendiente', $tarea['titulo']);
+            return ['success' => 'Tarea desbloqueada y devuelta a pendientes.'];
         }
 
         if ($action === 'reopen') {
             if (!$isOwner && !$isAdmin) {
                 return ['error' => 'No puedes reabrir esta tarea.'];
             }
-            $stmt = $db->prepare("UPDATE tareas SET status = 'pendiente', completed_at = NULL WHERE id = ?");
+            if (($tarea['status'] ?? '') !== 'completada') {
+                return ['error' => 'Solo puedes reabrir una tarea completada.'];
+            }
+            $stmt = $db->prepare("UPDATE tareas SET status = 'pendiente', completed_at = NULL WHERE id = ? AND status = 'completada'");
             if (!$stmt) {
                 return ['error' => 'No se pudo preparar la actualización de la tarea.'];
             }
@@ -243,12 +332,25 @@ if (!function_exists('tareas_handle_post')) {
                 return ['error' => 'No se pudo actualizar la tarea.'];
             }
             $stmt->close();
+            tareas_onboarding_log_task($db, $tareaId, $currentUserId, 'reabierta', $tarea['titulo']);
             return ['success' => 'Tarea reabierta.'];
         }
 
         if ($action === 'delete') {
             if (!$isOwner && !$isAdmin) {
                 return ['error' => 'No puedes eliminar esta tarea.'];
+            }
+            if (db_table_exists($db, 'onboarding_phase_tasks')) {
+                $linkedStmt = $db->prepare('SELECT id FROM onboarding_phase_tasks WHERE task_id = ? LIMIT 1');
+                if ($linkedStmt) {
+                    $linkedStmt->bind_param('i', $tareaId);
+                    $linkedStmt->execute();
+                    $isOnboardingTask = (bool)$linkedStmt->get_result()->fetch_assoc();
+                    $linkedStmt->close();
+                    if ($isOnboardingTask) {
+                        return ['error' => 'Esta tarea pertenece al historial de un proceso de onboarding y no se puede eliminar.'];
+                    }
+                }
             }
             $stmt = $db->prepare("DELETE FROM tareas WHERE id = ?");
             if (!$stmt) {
@@ -295,7 +397,7 @@ if (!function_exists('tareas_fetch_for_user')) {
         }
 
         $status = trim((string)($filters['status'] ?? ''));
-        if (in_array($status, ['pendiente', 'completada'], true)) {
+        if (in_array($status, ['pendiente', 'bloqueada', 'completada'], true)) {
             $conditions[] = 't.status = ?';
             $params[] = $status;
             $types .= 's';
@@ -324,7 +426,7 @@ if (!function_exists('tareas_fetch_for_user')) {
         if ($conditions) {
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
         }
-        $sql .= " ORDER BY CASE WHEN t.status = 'pendiente' THEN 0 ELSE 1 END, t.fecha_limite IS NULL, t.fecha_limite ASC, t.created_at DESC";
+        $sql .= " ORDER BY CASE WHEN t.status = 'pendiente' THEN 0 WHEN t.status = 'bloqueada' THEN 1 ELSE 2 END, t.fecha_limite IS NULL, t.fecha_limite ASC, t.created_at DESC";
 
         try {
             $stmt = $db->prepare($sql);
