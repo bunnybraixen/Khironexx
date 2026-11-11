@@ -502,6 +502,10 @@ if (is_file($appJsVersionPath)) {
       } catch (Throwable $e) {
         $dashboardLoadError = (string)$e->getMessage();
       }
+      $dashboardData['practicantFollowupVisible'] = (bool)$canAccessRrhh;
+      $dashboardData['practicantFollowup'] = $canAccessRrhh
+        ? dashboard_practicant_followup_data($db)
+        : ['available' => false, 'rows' => []];
       $dashboardTasks = ['rows' => [], 'total' => 0];
       if ($user && $canViewTareas && function_exists('tareas_pending_summary')) {
         try {

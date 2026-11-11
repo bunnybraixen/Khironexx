@@ -1121,7 +1121,21 @@ if (!function_exists('practicantes_build_data')) {
         $photoSelectSql = in_array('photo', $practicantesColumns, true) ? 'e.photo' : 'NULL AS photo';
         $sql = "SELECT e.id, " . $photoSelectSql . ", e.full_name, e.email, e.rut, e.telefono, e.fecha_inicio, e.fecha_fin, e.status,
                 e.correo_institucional, e.horas_exigidas, e.carrera, e.universidad" . $optionalSelectSql . ",
-                d.name AS department, p.name AS position, COALESCE(SUM(h.horas),0) AS horas_cumplidas
+                d.name AS department, p.name AS position,
+                CASE
+                    WHEN e.department_id IS NULL OR e.department_id = 0 THEN NULL
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM practicantes area_lead
+                        INNER JOIN cargos area_lead_position ON area_lead_position.id = area_lead.position_id
+                        WHERE area_lead.department_id = e.department_id
+                          AND area_lead.status = 'active'
+                          AND LOWER(TRIM(area_lead_position.name)) IN ('encargado de área', 'encargado de area')
+                        LIMIT 1
+                    ) THEN 1
+                    ELSE 0
+                END AS department_has_leader,
+                COALESCE(SUM(h.horas),0) AS horas_cumplidas
                 FROM practicantes e
                 LEFT JOIN departamentos d ON d.id = e.department_id
                 LEFT JOIN cargos p ON p.id = e.position_id

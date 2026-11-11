@@ -90,6 +90,94 @@ if (!function_exists('recent_history_entries')) {
     }
 }
 
+if (!function_exists('dashboard_practicant_followup_data')) {
+    function dashboard_practicant_followup_data(mysqli $db)
+    {
+        $data = [
+            'available' => false,
+            'evaluacionesAvailable' => false,
+            'active' => 0,
+            'withoutEvaluations' => null,
+            'endingSoon' => 0,
+            'rows' => [],
+        ];
+
+        if (!function_exists('db_table_exists') || !db_table_exists($db, 'practicantes')) {
+            return $data;
+        }
+
+        $columns = function_exists('db_table_columns') ? db_table_columns($db, 'practicantes') : [];
+        foreach (['id', 'full_name', 'status', 'fecha_fin'] as $requiredColumn) {
+            if (!in_array($requiredColumn, $columns, true)) {
+                return $data;
+            }
+        }
+
+        $data['available'] = true;
+        $data['evaluacionesAvailable'] = db_table_exists($db, 'practicante_evaluaciones');
+        $evaluationJoin = '';
+        $evaluationColumns = 'NULL AS total_evaluaciones, NULL AS ultima_evaluacion';
+        $evaluationOrder = '1';
+
+        if ($data['evaluacionesAvailable']) {
+            $evaluationJoin = "LEFT JOIN (
+                    SELECT practicante_id, COUNT(*) AS total_evaluaciones, MAX(fecha) AS ultima_evaluacion
+                    FROM practicante_evaluaciones
+                    GROUP BY practicante_id
+                ) ev ON ev.practicante_id = p.id";
+            $evaluationColumns = 'COALESCE(ev.total_evaluaciones, 0) AS total_evaluaciones, ev.ultima_evaluacion';
+            $evaluationOrder = 'CASE WHEN COALESCE(ev.total_evaluaciones, 0) = 0 THEN 0 ELSE 1 END';
+        }
+
+        try {
+            if ($data['evaluacionesAvailable']) {
+                $summaryResult = $db->query("SELECT COUNT(*) AS active,
+                        SUM(CASE WHEN COALESCE(ev.total_evaluaciones, 0) = 0 THEN 1 ELSE 0 END) AS without_evaluations,
+                        SUM(CASE WHEN p.fecha_fin >= CURDATE() AND p.fecha_fin <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) AS ending_soon
+                    FROM practicantes p
+                    $evaluationJoin
+                    WHERE p.status = 'active'");
+            } else {
+                $summaryResult = $db->query("SELECT COUNT(*) AS active,
+                        NULL AS without_evaluations,
+                        SUM(CASE WHEN p.fecha_fin >= CURDATE() AND p.fecha_fin <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) AS ending_soon
+                    FROM practicantes p
+                    WHERE p.status = 'active'");
+            }
+
+            if ($summaryResult && ($summary = $summaryResult->fetch_assoc())) {
+                $data['active'] = (int)($summary['active'] ?? 0);
+                $data['withoutEvaluations'] = $summary['without_evaluations'] === null
+                    ? null
+                    : (int)$summary['without_evaluations'];
+                $data['endingSoon'] = (int)($summary['ending_soon'] ?? 0);
+            }
+
+            $rowsResult = $db->query("SELECT p.id, p.full_name, p.fecha_fin,
+                    DATEDIFF(p.fecha_fin, CURDATE()) AS dias_restantes,
+                    $evaluationColumns
+                FROM practicantes p
+                $evaluationJoin
+                WHERE p.status = 'active'
+                ORDER BY $evaluationOrder,
+                    CASE WHEN p.fecha_fin >= CURDATE() THEN 0 ELSE 1 END,
+                    p.fecha_fin ASC,
+                    p.full_name ASC
+                LIMIT 8");
+            if ($rowsResult) {
+                while ($row = $rowsResult->fetch_assoc()) {
+                    $data['rows'][] = $row;
+                }
+            }
+        } catch (Throwable $e) {
+            $data['available'] = false;
+            $data['rows'] = [];
+        }
+
+        return $data;
+    }
+}
+
 if (!function_exists('dashboard_build_data')) {
     function dashboard_build_data(mysqli $db, array $dashboardConfig, $includeHistory = false)
     {

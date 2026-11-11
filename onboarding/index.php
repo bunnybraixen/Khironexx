@@ -2,9 +2,10 @@
 
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/models/OnboardingProcessModel.php';
+require_once __DIR__ . '/models/OnboardingTasksModel.php';
 require_once __DIR__ . '/controllers/OnboardingController.php';
 
-$onboardingController = new OnboardingController(new OnboardingModel($onboardingDb));
+$onboardingController = new OnboardingController(new OnboardingModel($onboardingDb), new OnboardingTasksModel($onboardingDb));
 $onboardingPage = $onboardingController->resolvePage($_GET['page'] ?? 'dashboard');
 $onboardingPostResult = $_SERVER['REQUEST_METHOD'] === 'POST'
 	? $onboardingController->handlePost($onboardingPage, $_POST, $_SESSION['user'], $onboardingCanManage)

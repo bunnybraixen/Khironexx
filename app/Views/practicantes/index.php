@@ -489,9 +489,10 @@ if ($rawEditCumple !== '') {
         <table class="practicantes-search-table">
           <thead>
             <tr>
-              <th>ID</th>
               <th>Nombre</th>
               <th>Área</th>
+              <th>Cargo</th>
+              <th>Encargado del área</th>
               <th>Correo</th>
               <th>Inicio</th>
               <th>Término</th>
@@ -517,11 +518,24 @@ if ($rawEditCumple !== '') {
                 $horasCumplidas = (int)($row['horas_cumplidas'] ?? 0);
                 $pendientes = $horasExigidas > 0 ? max(0, $horasExigidas - $horasCumplidas) : 0;
                 $isActive = ($row['status'] ?? 'active') !== 'inactive';
+                $departmentName = trim((string)($row['department'] ?? ''));
+                $departmentHasLeader = $row['department_has_leader'] ?? null;
+                if ($departmentName === '') {
+                  $departmentLeaderLabel = 'Área sin asignar';
+                  $departmentLeaderClass = 'metric-badge';
+                } elseif ((int)$departmentHasLeader === 1) {
+                  $departmentLeaderLabel = 'Con encargado';
+                  $departmentLeaderClass = 'chip success';
+                } else {
+                  $departmentLeaderLabel = 'Falta encargado';
+                  $departmentLeaderClass = 'chip warning';
+                }
                 ?>
                 <tr>
-                  <td><?php echo (int)$row['id']; ?></td>
                   <td><a class="link" href="<?php echo htmlspecialchars(route_url('practicantes') . '&ui_module=buscar&view=' . (int)$row['id']); ?>"><?php echo htmlspecialchars($row['full_name']); ?></a></td>
                   <td><?php echo htmlspecialchars($row['department'] ?? ''); ?></td>
+                  <td><?php echo htmlspecialchars((string)($row['position'] ?? 'Sin asignar')); ?></td>
+                  <td><span class="<?php echo htmlspecialchars($departmentLeaderClass); ?>"><?php echo htmlspecialchars($departmentLeaderLabel); ?></span></td>
                   <td><?php echo htmlspecialchars($row['email'] ?? ''); ?></td>
                   <td><?php echo htmlspecialchars($row['fecha_inicio'] ?? ''); ?></td>
                   <td><?php echo htmlspecialchars($row['fecha_fin'] ?? ''); ?></td>
@@ -551,6 +565,7 @@ if ($rawEditCumple !== '') {
           </tbody>
         </table>
       </div>
+      <p class="subtle">El estado del área se determina buscando un registro activo con el cargo “Encargado de Área”.</p>
     </section>
 
     <section class="practicantes-panel" data-module-panel="editar" <?php echo $activeModule === 'editar' ? '' : 'hidden'; ?>>
