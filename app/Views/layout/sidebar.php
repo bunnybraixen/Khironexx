@@ -47,6 +47,12 @@
         <span class="sidebar-text"><?php echo htmlspecialchars($label); ?></span>
       </a>
     <?php endforeach; ?>
+    <a class="sidebar-link" href="<?php echo htmlspecialchars(url_path('../onboarding/')); ?>" title="Onboarding" aria-label="Onboarding" data-label="Onboarding">
+      <span class="sidebar-icon" aria-hidden="true">
+        <i class="fa-solid fa-user-check"></i>
+      </span>
+      <span class="sidebar-text">Onboarding</span>
+    </a>
   </nav>
   <div class="sidebar-logo">
     <img class="brand-locked" data-brand-lock="sidebar-logo" draggable="false" src="<?php echo htmlspecialchars(asset('../img/Logo-wide.png')); ?>" alt="Khironex">
