@@ -31,9 +31,6 @@ if (!function_exists('dashboard_menu')) {
             ['label' => 'Calendario', 'route' => 'calendario'],
             ['label' => 'Postulantes', 'route' => 'postulantes'],
             ['label' => 'Practicantes', 'route' => 'practicantes'],
-            ['label' => 'Relatores', 'route' => 'relatores'],
-            ['label' => 'Cursos finalizados', 'route' => 'capacitaciones'],
-            ['label' => 'Sedes de capacitaciones', 'route' => 'sedes'],
             ['label' => 'Informes', 'route' => 'informes'],
             ['label' => 'Solicitudes', 'route' => 'solicitudes'],
             ['label' => 'Tickets de soporte', 'route' => 'tickets'],
@@ -233,9 +230,9 @@ if (!function_exists('dashboard_build_data')) {
         $expiringAutoRows = [];
         if (function_exists('db_table_exists') && db_table_exists($db, 'practicantes')) {
             try {
-                $expiringQuery = $db->query("SELECT exp.area, exp.name, exp.days
+                $expiringQuery = $db->query("SELECT exp.id, exp.area, exp.name, exp.days
                         FROM (
-                            SELECT d.name AS area, e.full_name AS name,
+                            SELECT e.id, d.name AS area, e.full_name AS name,
                                 DATEDIFF(
                                     STR_TO_DATE(NULLIF(CAST(e.fecha_fin AS CHAR(10)), '0000-00-00'), '%Y-%m-%d'),
                                     CURDATE()
@@ -252,6 +249,7 @@ if (!function_exists('dashboard_build_data')) {
                 if ($expiringQuery) {
                     while ($row = $expiringQuery->fetch_assoc()) {
                         $expiringAutoRows[] = [
+                            'id' => $row['id'] ?? 0,
                             'area' => $row['area'] ?? '',
                             'name' => $row['name'] ?? '',
                             'days' => $row['days'] ?? '',
@@ -263,6 +261,9 @@ if (!function_exists('dashboard_build_data')) {
             }
         }
         $expiring = $expiringAutoRows;
+        if (function_exists('notificaciones_create_for_expiring_practicantes')) {
+            notificaciones_create_for_expiring_practicantes($db, $expiring);
+        }
 
         $requests = [];
         if (function_exists('recent_requests')) {

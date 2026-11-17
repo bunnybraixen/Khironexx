@@ -438,6 +438,7 @@ form .btn {
 
 .login-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -649,6 +650,49 @@ body.cookie-modal-open {
 @media (max-width: 900px) {
   .login-card {
     width: min(520px, 92vw);
+  }
+}
+
+@media (max-width: 600px) {
+  .login-shell {
+    padding: 16px;
+  }
+
+  .login-card {
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  .login-form {
+    gap: 12px;
+    padding: 18px 16px;
+  }
+
+  .login-form .field input {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .login-actions {
+    margin-top: 12px;
+  }
+
+  .login-actions .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .login-footer {
+    flex-wrap: wrap;
+  }
+
+  .login-footer-logo {
+    max-width: 48%;
+    height: 40px;
+  }
+
+  .cookie-modal {
+    padding: 12px;
   }
 }
 

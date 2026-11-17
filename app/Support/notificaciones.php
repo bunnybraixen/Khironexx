@@ -79,6 +79,48 @@ if (!function_exists('notificaciones_create_due_task_reminders')) {
     }
 }
 
+if (!function_exists('notificaciones_create_for_expiring_practicantes')) {
+    function notificaciones_create_for_expiring_practicantes(mysqli $db, array $practicantes)
+    {
+        if (!$practicantes || !db_table_exists($db, 'notificaciones') || !db_table_exists($db, 'roles') || !db_table_exists($db, 'usuarios_roles')) {
+            return false;
+        }
+
+        $stmt = $db->prepare("SELECT DISTINCT ur.user_id
+            FROM usuarios_roles ur
+            INNER JOIN roles r ON r.id = ur.role_id
+            INNER JOIN usuarios u ON u.id = ur.user_id
+            WHERE r.role_key IN ('admin', 'rrhh') AND u.status = 'active'");
+        if (!$stmt || !$stmt->execute()) {
+            return false;
+        }
+
+        $recipientIds = [];
+        $stmt->bind_result($recipientId);
+        while ($stmt->fetch()) {
+            $recipientIds[] = (int)$recipientId;
+        }
+        $stmt->close();
+
+        foreach ($practicantes as $practicante) {
+            $practicanteId = (int)($practicante['id'] ?? 0);
+            $name = trim((string)($practicante['name'] ?? ''));
+            $days = (int)($practicante['days'] ?? 0);
+            if ($practicanteId <= 0 || $name === '') {
+                continue;
+            }
+            $message = $days === 0
+                ? $name . ' termina su práctica hoy.'
+                : $name . ' termina su práctica en ' . $days . ' días.';
+            foreach ($recipientIds as $recipientId) {
+                notificaciones_create($db, $recipientId, 'practicante_por_terminar', 'Practicante próximo a terminar', $message, 'dashboard', $practicanteId);
+            }
+        }
+
+        return true;
+    }
+}
+
 if (!function_exists('notificaciones_unread_count')) {
     function notificaciones_unread_count(mysqli $db, $userId)
     {

@@ -14,11 +14,11 @@
           <div class="grid">
             <div class="field">
               <label>📧 Usuario o Email</label>
-              <input name="email" type="text" required>
+              <input name="email" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
             </div>
             <div class="field">
               <label>🔑 Contrasena</label>
-              <input name="password" type="password" required>
+              <input name="password" type="password" autocomplete="current-password" required>
             </div>
           </div>
           <div class="login-actions">

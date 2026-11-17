@@ -502,6 +502,10 @@ if (is_file($appJsVersionPath)) {
       } catch (Throwable $e) {
         $dashboardLoadError = (string)$e->getMessage();
       }
+      if ($user && $notificationsAvailable) {
+        $notificationRows = notificaciones_fetch_latest($db, (int)($user['id'] ?? 0), 8);
+        $notificationUnreadCount = notificaciones_unread_count($db, (int)($user['id'] ?? 0));
+      }
       $dashboardTasks = ['rows' => [], 'total' => 0];
       if ($user && $canViewTareas && function_exists('tareas_pending_summary')) {
         try {
