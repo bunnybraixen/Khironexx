@@ -14,6 +14,10 @@ $totalTrainings = (int)($totals['capacitaciones'] ?? 0);
 $birthdayCount = is_array($dashboardBirthdays) ? count($dashboardBirthdays) : 0;
 $expiringCount = is_array($dashboardExpiring) ? count($dashboardExpiring) : 0;
 $canViewTareas = $canViewTareas ?? !empty($dashboardData['tasksVisible']);
+$dashboardFollowupVisible = !empty($dashboardData['practicantFollowupVisible']);
+$dashboardFollowup = is_array($dashboardData['practicantFollowup'] ?? null)
+  ? $dashboardData['practicantFollowup']
+  : ['available' => false, 'rows' => []];
 ?>
 <div class="dashboard">
   <?php require __DIR__ . '/../layout/sidebar.php'; ?>
@@ -92,6 +96,21 @@ $canViewTareas = $canViewTareas ?? !empty($dashboardData['tasksVisible']);
         grid-column: span 6 !important;
       }
 
+      .widget-followup {
+        grid-column: span 12 !important;
+      }
+
+      .followup-summary {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: 12px 0 16px;
+      }
+
+      .followup-summary .stat {
+        min-width: 0;
+      }
+
       .widget-alert {
         grid-column: span 6 !important;
       }
@@ -120,6 +139,7 @@ $canViewTareas = $canViewTareas ?? !empty($dashboardData['tasksVisible']);
         .widget-calendar,
         .widget-contact,
         .widget-birthdays,
+        .widget-followup,
         .widget-alert,
         .widget-expiring,
         .widget-tasks {
@@ -147,6 +167,10 @@ $canViewTareas = $canViewTareas ?? !empty($dashboardData['tasksVisible']);
 
         .widget-base .stats-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        .followup-summary {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -198,6 +222,93 @@ $canViewTareas = $canViewTareas ?? !empty($dashboardData['tasksVisible']);
         </div>
         <p class="subtle" style="margin: 8px 0 0 0;">Resumen rapido de la base central.</p>
       </div>
+
+      <?php if ($dashboardFollowupVisible): ?>
+        <div class="widget-card widget-followup">
+          <div class="widget-head">
+            <div>
+              <h3>Seguimiento de practicantes</h3>
+              <p class="subtle" style="margin: 4px 0 0;">Resumen de evaluaciones registradas y fechas de término próximas.</p>
+            </div>
+            <span class="chip">RR. HH.</span>
+          </div>
+
+          <?php if (empty($dashboardFollowup['available'])): ?>
+            <div class="notice">No se pudo cargar el seguimiento. Revisa que la base de datos tenga las tablas y columnas de practicantes esperadas.</div>
+          <?php else: ?>
+            <div class="followup-summary">
+              <div class="stat">
+                <span>Practicantes activos</span>
+                <strong><?php echo (int)($dashboardFollowup['active'] ?? 0); ?></strong>
+              </div>
+              <div class="stat">
+                <span>Sin evaluaciones registradas</span>
+                <strong><?php echo $dashboardFollowup['withoutEvaluations'] === null ? '—' : (int)$dashboardFollowup['withoutEvaluations']; ?></strong>
+              </div>
+              <div class="stat">
+                <span>Término en los próximos 30 días</span>
+                <strong><?php echo (int)($dashboardFollowup['endingSoon'] ?? 0); ?></strong>
+              </div>
+            </div>
+
+            <?php if (empty($dashboardFollowup['evaluacionesAvailable'])): ?>
+              <div class="notice">Para mostrar el estado de las evaluaciones, importa la migración <code>sql/evaluaciones_practicantes_migration.sql</code> en la base de datos de Khironexx.</div>
+            <?php endif; ?>
+
+            <?php if (!empty($dashboardFollowup['rows'])): ?>
+              <div style="display:block;width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+                <table class="table-compact" style="width:100%;min-width:650px;border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th>Practicante</th>
+                      <th>Evaluaciones</th>
+                      <th>Última evaluación</th>
+                      <th>Fecha de término</th>
+                      <th>Seguimiento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($dashboardFollowup['rows'] as $followupRow): ?>
+                      <?php
+                      $followupId = (int)($followupRow['id'] ?? 0);
+                      $followupDays = $followupRow['dias_restantes'] === null ? null : (int)$followupRow['dias_restantes'];
+                      $followupEvaluationCount = $followupRow['total_evaluaciones'] === null ? null : (int)$followupRow['total_evaluaciones'];
+                      if ($followupEvaluationCount === 0) {
+                          $followupStatus = 'Sin evaluación';
+                      } elseif ($followupDays !== null && $followupDays < 0) {
+                          $followupStatus = 'Revisar fecha';
+                      } elseif ($followupDays !== null && $followupDays <= 30) {
+                          $followupStatus = 'Término cercano';
+                      } else {
+                          $followupStatus = 'En seguimiento';
+                      }
+                      $followupLink = route_url('practicantes') . '&ui_module=buscar&view=' . $followupId;
+                      ?>
+                      <tr>
+                        <td><a class="link" href="<?php echo htmlspecialchars($followupLink); ?>"><?php echo htmlspecialchars((string)($followupRow['full_name'] ?? '')); ?></a></td>
+                        <td><?php echo $followupEvaluationCount === null ? '—' : $followupEvaluationCount; ?></td>
+                        <td><?php echo htmlspecialchars((string)($followupRow['ultima_evaluacion'] ?? '—')); ?></td>
+                        <td>
+                          <?php if (!empty($followupRow['fecha_fin'])): ?>
+                            <?php echo htmlspecialchars((string)$followupRow['fecha_fin']); ?>
+                            <?php if ($followupDays !== null): ?><span class="subtle">(<?php echo $followupDays < 0 ? 'fecha pasada' : $followupDays . ' días'; ?>)</span><?php endif; ?>
+                          <?php else: ?>
+                            <span class="subtle">Sin fecha</span>
+                          <?php endif; ?>
+                        </td>
+                        <td><span class="metric-badge"><?php echo htmlspecialchars($followupStatus); ?></span></td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            <?php else: ?>
+              <p class="subtle">No hay practicantes activos para mostrar.</p>
+            <?php endif; ?>
+            <a class="link widget-link" href="<?php echo htmlspecialchars(route_url('practicantes')); ?>">Abrir módulo de practicantes <i class="fas fa-arrow-right"></i></a>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
 
       <?php $dashboardShowAlerts = ($canAdmin && $dashboardAlerts); ?>
       <?php if ($dashboardShowAlerts): ?>

@@ -15,6 +15,7 @@ if (!function_exists('tareas_status_labels')) {
     {
         return [
             'pendiente' => 'Pendiente',
+            'en_progreso' => 'En progreso',
             'bloqueada' => 'Bloqueada',
             'completada' => 'Lista',
         ];
@@ -28,6 +29,7 @@ if (!function_exists('tareas_priority_labels')) {
             'baja' => 'Baja',
             'media' => 'Media',
             'alta' => 'Alta',
+            'urgente' => 'Urgente',
         ];
     }
 }

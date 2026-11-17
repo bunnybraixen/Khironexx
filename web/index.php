@@ -506,6 +506,10 @@ if (is_file($appJsVersionPath)) {
         $notificationRows = notificaciones_fetch_latest($db, (int)($user['id'] ?? 0), 8);
         $notificationUnreadCount = notificaciones_unread_count($db, (int)($user['id'] ?? 0));
       }
+      $dashboardData['practicantFollowupVisible'] = (bool)$canAccessRrhh;
+      $dashboardData['practicantFollowup'] = $canAccessRrhh
+        ? dashboard_practicant_followup_data($db)
+        : ['available' => false, 'rows' => []];
       $dashboardTasks = ['rows' => [], 'total' => 0];
       if ($user && $canViewTareas && function_exists('tareas_pending_summary')) {
         try {

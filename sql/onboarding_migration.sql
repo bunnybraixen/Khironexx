@@ -95,6 +95,19 @@ CREATE TABLE IF NOT EXISTS onboarding_phase_tasks (
     CONSTRAINT fk_onboarding_phase_task_template FOREIGN KEY (template_task_id) REFERENCES onboarding_task_templates(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS onboarding_evidence (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    task_id INT NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    original_filename VARCHAR(255) DEFAULT NULL,
+    description TEXT DEFAULT NULL,
+    uploaded_by_user_id INT DEFAULT NULL,
+    uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_onboarding_evidence_task (task_id, uploaded_at),
+    CONSTRAINT fk_onboarding_evidence_task FOREIGN KEY (task_id) REFERENCES tareas(id) ON DELETE CASCADE,
+    CONSTRAINT fk_onboarding_evidence_user FOREIGN KEY (uploaded_by_user_id) REFERENCES usuarios(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS onboarding_history (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     process_id BIGINT NOT NULL,
