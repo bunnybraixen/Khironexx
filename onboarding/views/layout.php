@@ -24,7 +24,7 @@ $onboardingEscape = function ($value) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/onboarding.css?v=<?php echo (int)@filemtime($onboardingCssPath); ?>">
 </head>
-<body class="dashboard-body onboarding-body">
+<body class="onboarding-body">
   <div class="brand-watermark" aria-hidden="true"></div>
   <div class="onboarding-shell">
     <aside class="onboarding-sidebar" id="onboarding-sidebar">
