@@ -138,6 +138,8 @@ class OnboardingController
                 $data['phases'] = $this->model->fetchPhases($data['processId']);
                 $data['history'] = $this->model->fetchHistory($data['processId']);
                 $data['taskSummary'] = $this->model->fetchTaskSummary($data['processId']);
+            } else {
+                $data['processes'] = $this->model->fetchProcesses();
             }
         } elseif ($page === 'tareas') {
             $data['taskFilters'] = [

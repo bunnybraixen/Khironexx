@@ -628,14 +628,17 @@
 .task-completed { color: #fff; background: #58a889; }
 .task-blocked { color: #fff; background: #bd715b; }
 .task-overdue { color: #a05648; background: #fff0ec; }
+.task-in_progress { color: #fff; background: #438ba0; }
 .phase-task-title { min-width: 0; }
 .phase-task-title a { display: block; overflow: hidden; color: #405458; font-size: 10px; font-weight: 700; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
 .phase-task-title a:hover { color: #287565; text-decoration: underline; }
 .phase-task-title small { color: #83918e; font-size: 8px; }
+.phase-task-description { margin: 3px 0 0; overflow-wrap: anywhere; color: #879395; font-size: 9px; line-height: 1.45; }
 .phase-task-owner, .phase-task-date { overflow: hidden; color: #758488; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .task-status-label { justify-self: start; padding: 4px 6px; border-radius: 12px; font-size: 8px; font-weight: 800; white-space: nowrap; }
 .task-label-completed { color: #3b795f; background: #eaf5ee; }
 .task-label-pending { color: #7c6a37; background: #f8f4e7; }
+.task-label-in_progress { color: #326f82; background: #e9f5f8; }
 .task-label-blocked, .task-label-overdue { color: #9c5145; background: #fff0ec; }
 .onboarding-detail-controls { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 13px; margin: 14px 0; padding: 15px; border: 1px solid #e0e8e6; border-radius: 7px; background: rgba(255,255,255,.9); }
 .onboarding-detail-controls form { display: flex; align-items: end; gap: 10px; }
